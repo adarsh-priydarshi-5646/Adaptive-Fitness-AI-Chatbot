@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { API_URL } from '../config/api';
 
 type Message = {
@@ -23,10 +24,10 @@ type Message = {
 };
 
 const quickActions = [
-  '💪 Beginner workout',
-  '🔥 Warm-up exercises',
-  '📅 Weekly plan',
-  '😴 Recovery tips',
+  { label: 'Beginner workout', icon: 'fitness-outline' as const },
+  { label: 'Warm-up exercises', icon: 'flame-outline' as const },
+  { label: 'Weekly plan', icon: 'calendar-outline' as const },
+  { label: 'Recovery tips', icon: 'bed-outline' as const },
 ];
 
 const parseAIResponse = (text: string) => {
@@ -74,7 +75,6 @@ const extractFollowUpPills = (text: string): string[] => {
   const patterns = [
     /Want to know about[:\s]*(.+)/i,
     /Try asking[:\s]*(.+)/i,
-    /\|([^|]+)\|/g,
   ];
   
   for (const pattern of patterns) {
@@ -126,7 +126,7 @@ export default function ChatScreen() {
 
     setMessages([{
       id: '1',
-      text: "Hey! 👋 I'm your fitness companion. Ask me anything about workouts, exercises, or wellness tips!",
+      text: "Hey! I'm your fitness companion. Ask me anything about workouts, exercises, or wellness tips!",
       isUser: false,
       timestamp: new Date(),
     }]);
@@ -192,7 +192,10 @@ export default function ChatScreen() {
               <View key={idx} style={styles.daySection}>
                 <Text style={styles.dayHeader}>{section.content}</Text>
                 {section.items?.map((item, i) => (
-                  <Text key={i} style={styles.dayItem}>• {item}</Text>
+                  <View key={i} style={styles.dayItemRow}>
+                    <Ionicons name="chevron-forward" size={14} color="#4ade80" />
+                    <Text style={styles.dayItem}>{item}</Text>
+                  </View>
                 ))}
               </View>
             );
@@ -202,7 +205,7 @@ export default function ChatScreen() {
               <View key={idx} style={styles.listSection}>
                 {section.items?.map((item, i) => (
                   <View key={i} style={styles.bulletItem}>
-                    <Text style={styles.bulletDot}>•</Text>
+                    <View style={styles.bulletDot} />
                     <Text style={styles.bulletText}>{item}</Text>
                   </View>
                 ))}
@@ -219,24 +222,38 @@ export default function ChatScreen() {
 
   const renderMessage = ({ item }: { item: Message }) => (
     <View style={[styles.messageBubble, item.isUser ? styles.userBubble : styles.aiBubble]}>
-      {item.isUser ? (
-        <Text style={[styles.messageText, styles.userText]}>{item.text}</Text>
-      ) : (
-        renderStructuredContent(item.text)
+      {!item.isUser && (
+        <View style={styles.aiAvatar}>
+          <MaterialCommunityIcons name="robot" size={16} color="#4f46e5" />
+        </View>
       )}
+      <View style={styles.messageContent}>
+        {item.isUser ? (
+          <Text style={[styles.messageText, styles.userText]}>{item.text}</Text>
+        ) : (
+          renderStructuredContent(item.text)
+        )}
+      </View>
     </View>
   );
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>💪 Fitness Chat</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.headerButton}>
+          <Ionicons name="arrow-back" size={22} color="#a5b4fc" />
+        </TouchableOpacity>
+        <View style={styles.headerCenter}>
+          <MaterialCommunityIcons name="dumbbell" size={20} color="#4f46e5" />
+          <Text style={styles.headerTitle}>Fitness Chat</Text>
+        </View>
         <View style={styles.headerRight}>
-          <TouchableOpacity onPress={() => router.push('/history')} style={styles.historyButton}>
-            <Text style={styles.historyText}>📜</Text>
+          <TouchableOpacity onPress={() => router.push('/history')} style={styles.headerButton}>
+            <Ionicons name="time-outline" size={22} color="#a5b4fc" />
           </TouchableOpacity>
           <View style={styles.coinBadge}>
-            <Text style={styles.coinText}>🪙 {coins}</Text>
+            <Ionicons name="star" size={14} color="#fbbf24" />
+            <Text style={styles.coinText}>{coins}</Text>
           </View>
         </View>
       </View>
@@ -248,11 +265,12 @@ export default function ChatScreen() {
         keyExtractor={item => item.id}
         contentContainerStyle={styles.messageList}
         onContentSizeChange={() => flatListRef.current?.scrollToEnd()}
+        showsVerticalScrollIndicator={false}
       />
 
       {loading && (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator color="#4f46e5" />
+          <ActivityIndicator color="#4f46e5" size="small" />
           <Text style={styles.loadingText}>Thinking...</Text>
         </View>
       )}
@@ -264,6 +282,7 @@ export default function ChatScreen() {
               key={index}
               style={styles.followUpPill}
               onPress={() => sendMessage(pill)}
+              activeOpacity={0.7}
             >
               <Text style={styles.followUpText}>{pill}</Text>
             </TouchableOpacity>
@@ -277,9 +296,11 @@ export default function ChatScreen() {
             <TouchableOpacity
               key={index}
               style={styles.quickActionButton}
-              onPress={() => sendMessage(action)}
+              onPress={() => sendMessage(action.label)}
+              activeOpacity={0.7}
             >
-              <Text style={styles.quickActionText}>{action}</Text>
+              <Ionicons name={action.icon} size={18} color="#a5b4fc" />
+              <Text style={styles.quickActionText}>{action.label}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -295,15 +316,16 @@ export default function ChatScreen() {
             value={inputText}
             onChangeText={setInputText}
             placeholder="Ask about fitness..."
-            placeholderTextColor="#666"
+            placeholderTextColor="#6b7280"
             multiline
           />
           <TouchableOpacity
             style={[styles.sendButton, !inputText.trim() && styles.sendButtonDisabled]}
             onPress={() => sendMessage(inputText)}
             disabled={!inputText.trim() || loading}
+            activeOpacity={0.7}
           >
-            <Text style={styles.sendButtonText}>↑</Text>
+            <Ionicons name="send" size={20} color="#fff" />
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -320,13 +342,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#2d2d44',
   },
+  headerButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#16213e',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerCenter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '600',
     color: '#fff',
   },
   headerRight: {
@@ -334,21 +370,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  historyButton: {
-    padding: 4,
-  },
-  historyText: {
-    fontSize: 20,
-  },
   coinBadge: {
-    backgroundColor: '#2d2d44',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#16213e',
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 8,
     borderRadius: 20,
+    gap: 6,
   },
   coinText: {
     color: '#fbbf24',
     fontWeight: '600',
+    fontSize: 14,
   },
   messageList: {
     padding: 16,
@@ -356,19 +390,31 @@ const styles = StyleSheet.create({
   },
   messageBubble: {
     maxWidth: '85%',
-    padding: 14,
-    borderRadius: 16,
-    marginBottom: 10,
+    marginBottom: 12,
+    flexDirection: 'row',
+    gap: 8,
   },
   userBubble: {
-    backgroundColor: '#4f46e5',
     alignSelf: 'flex-end',
-    borderBottomRightRadius: 4,
   },
   aiBubble: {
-    backgroundColor: '#2d2d44',
     alignSelf: 'flex-start',
-    borderBottomLeftRadius: 4,
+  },
+  aiAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#16213e',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 4,
+  },
+  messageContent: {
+    backgroundColor: '#2d2d44',
+    padding: 14,
+    borderRadius: 16,
+    borderTopLeftRadius: 4,
+    flex: 1,
   },
   messageText: {
     color: '#e0e0e0',
@@ -382,118 +428,128 @@ const styles = StyleSheet.create({
     marginVertical: 8,
     backgroundColor: '#1a1a2e',
     borderRadius: 8,
-    padding: 10,
+    padding: 12,
   },
   dayHeader: {
     color: '#4ade80',
     fontSize: 15,
     fontWeight: '600',
-    marginBottom: 6,
+    marginBottom: 8,
+  },
+  dayItemRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    marginVertical: 2,
   },
   dayItem: {
     color: '#d1d5db',
     fontSize: 14,
     lineHeight: 20,
-    marginLeft: 8,
+    flex: 1,
   },
   listSection: {
     marginVertical: 4,
   },
   bulletItem: {
     flexDirection: 'row',
-    marginVertical: 3,
+    alignItems: 'flex-start',
+    marginVertical: 4,
+    gap: 10,
   },
   bulletDot: {
-    color: '#4ade80',
-    fontSize: 14,
-    marginRight: 8,
-    width: 12,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#4ade80',
+    marginTop: 8,
   },
   bulletText: {
     color: '#e0e0e0',
     fontSize: 14,
-    lineHeight: 20,
+    lineHeight: 22,
     flex: 1,
   },
   loadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 8,
+    paddingVertical: 12,
+    gap: 10,
   },
   loadingText: {
-    color: '#888',
-    marginLeft: 8,
+    color: '#9ca3af',
+    fontSize: 14,
   },
   followUpContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
     paddingVertical: 8,
     gap: 8,
   },
   followUpPill: {
     backgroundColor: '#16213e',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: '#4ade80',
   },
   followUpText: {
     color: '#4ade80',
     fontSize: 13,
+    fontWeight: '500',
   },
   quickActions: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    padding: 12,
-    gap: 8,
+    padding: 16,
+    gap: 10,
   },
   quickActionButton: {
-    backgroundColor: '#2d2d44',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#16213e',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 24,
     borderWidth: 1,
     borderColor: '#4f46e5',
+    gap: 8,
   },
   quickActionText: {
     color: '#a5b4fc',
     fontSize: 13,
+    fontWeight: '500',
   },
   inputContainer: {
     flexDirection: 'row',
-    padding: 12,
+    padding: 16,
     borderTopWidth: 1,
     borderTopColor: '#2d2d44',
     alignItems: 'flex-end',
+    gap: 12,
   },
   input: {
     flex: 1,
-    backgroundColor: '#2d2d44',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    backgroundColor: '#16213e',
+    borderRadius: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
     color: '#fff',
     fontSize: 16,
     maxHeight: 100,
   },
   sendButton: {
     backgroundColor: '#4f46e5',
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 8,
   },
   sendButtonDisabled: {
     backgroundColor: '#4f46e580',
-  },
-  sendButtonText: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: 'bold',
   },
 });
