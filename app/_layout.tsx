@@ -10,6 +10,7 @@ export default function RootLayout() {
         <Stack.Screen name="index" />
         <Stack.Screen name="onboarding" />
         <Stack.Screen name="chat" />
+        <Stack.Screen name="history" />
       </Stack>
       <StatusBar style="light" />
     </ThemeProvider>

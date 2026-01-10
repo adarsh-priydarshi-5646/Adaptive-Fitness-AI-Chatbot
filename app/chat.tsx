@@ -11,6 +11,7 @@ import {
   Platform,
   ActivityIndicator,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '../config/api';
 
@@ -101,6 +102,7 @@ const extractFollowUpPills = (text: string): string[] => {
 };
 
 export default function ChatScreen() {
+  const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
@@ -239,8 +241,13 @@ export default function ChatScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>💪 Fitness Chat</Text>
-        <View style={styles.coinBadge}>
-          <Text style={styles.coinText}>🪙 {coins}</Text>
+        <View style={styles.headerRight}>
+          <TouchableOpacity onPress={() => router.push('/history')} style={styles.historyButton}>
+            <Text style={styles.historyText}>📜</Text>
+          </TouchableOpacity>
+          <View style={styles.coinBadge}>
+            <Text style={styles.coinText}>🪙 {coins}</Text>
+          </View>
         </View>
       </View>
 
@@ -333,6 +340,17 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: '#fff',
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  historyButton: {
+    padding: 4,
+  },
+  historyText: {
+    fontSize: 20,
   },
   coinBadge: {
     backgroundColor: '#2d2d44',
