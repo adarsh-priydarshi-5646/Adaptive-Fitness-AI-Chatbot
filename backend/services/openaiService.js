@@ -1,21 +1,21 @@
-const OpenAI = require('openai');
+const Groq = require('groq-sdk');
 
-let openai = null;
+let groq = null;
 
-const getOpenAIClient = () => {
-  if (!openai) {
-    openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
+const getGroqClient = () => {
+  if (!groq) {
+    groq = new Groq({
+      apiKey: process.env.GROQ_API_KEY,
     });
   }
-  return openai;
+  return groq;
 };
 
 const getChatCompletion = async (systemPrompt, userPrompt) => {
   try {
-    const client = getOpenAIClient();
+    const client = getGroqClient();
     const completion = await client.chat.completions.create({
-      model: 'gpt-3.5-turbo',
+      model: 'llama-3.1-8b-instant',
       messages: [
         {
           role: 'system',
@@ -32,7 +32,7 @@ const getChatCompletion = async (systemPrompt, userPrompt) => {
 
     return completion.choices[0].message.content;
   } catch (error) {
-    console.error('OpenAI API Error:', error);
+    console.error('Groq API Error:', error);
     throw new Error('Failed to get AI response');
   }
 };
