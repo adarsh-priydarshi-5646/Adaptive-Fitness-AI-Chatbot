@@ -1,21 +1,13 @@
-// Keywords that indicate medical advice requests
 const medicalKeywords = [
-  // Diseases
   'diabetes', 'heart disease', 'hypertension', 'cancer', 'arthritis',
   'asthma', 'copd', 'thyroid', 'disease', 'syndrome', 'disorder',
   'condition', 'diagnosed', 'diagnosis',
-  
-  // Injuries
   'injury', 'injured', 'fracture', 'broken bone', 'torn ligament',
   'sprain', 'strain', 'tear', 'ruptured', 'herniated', 'disc',
   'concussion', 'trauma',
-  
-  // Medication & Supplements
   'medication', 'medicine', 'prescription', 'drug', 'pill',
   'supplement', 'vitamin', 'protein powder', 'creatine', 'steroid',
   'antibiotic', 'painkiller', 'ibuprofen', 'aspirin',
-  
-  // Medical procedures
   'surgery', 'operation', 'treatment', 'therapy', 'rehabilitation',
   'physical therapy', 'doctor', 'physician', 'specialist',
 ];

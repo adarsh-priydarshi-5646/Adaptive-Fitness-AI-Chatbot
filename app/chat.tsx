@@ -29,7 +29,6 @@ const quickActions = [
   '😴 Recovery tips',
 ];
 
-// Parse AI response for structured content
 const parseAIResponse = (text: string) => {
   const sections: { type: string; content: string; items?: string[] }[] = [];
   const lines = text.split('\n');
@@ -39,12 +38,10 @@ const parseAIResponse = (text: string) => {
     const trimmed = line.trim();
     if (!trimmed) continue;
     
-    // Check for day headers (Day 1:, Monday:, etc.)
     if (/^(Day\s*\d+|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)[:\s]/i.test(trimmed)) {
       if (currentSection) sections.push(currentSection);
       currentSection = { type: 'day', content: trimmed, items: [] };
     }
-    // Check for bullet points
     else if (/^[-•*]\s/.test(trimmed) || /^\d+[.)]\s/.test(trimmed)) {
       const item = trimmed.replace(/^[-•*\d.)]+\s*/, '');
       if (currentSection?.items) {
@@ -54,12 +51,10 @@ const parseAIResponse = (text: string) => {
         currentSection = { type: 'list', content: '', items: [item] };
       }
     }
-    // Check for follow-up suggestions (Want to know about:, etc.)
     else if (/^(Want to know|Try asking|You might also|Suggested|Quick actions)[:\s]/i.test(trimmed)) {
       if (currentSection) sections.push(currentSection);
       currentSection = { type: 'followup', content: trimmed, items: [] };
     }
-    // Regular text
     else {
       if (currentSection?.type === 'list' || currentSection?.type === 'day') {
         if (currentSection.items) currentSection.items.push(trimmed);
@@ -74,7 +69,6 @@ const parseAIResponse = (text: string) => {
   return sections.length > 0 ? sections : [{ type: 'text', content: text }];
 };
 
-// Extract follow-up pills from response
 const extractFollowUpPills = (text: string): string[] => {
   const pills: string[] = [];
   const patterns = [
@@ -91,7 +85,6 @@ const extractFollowUpPills = (text: string): string[] => {
     }
   }
   
-  // Also check for pipe-separated suggestions
   const pipeMatch = text.match(/([^|]+\|[^|]+(?:\|[^|]+)*)/);
   if (pipeMatch) {
     const items = pipeMatch[1].split('|').map(s => s.trim()).filter(Boolean);
@@ -190,7 +183,6 @@ export default function ChatScreen() {
     }
   };
 
-  // Render structured AI response
   const renderStructuredContent = (text: string) => {
     const sections = parseAIResponse(text);
     
@@ -267,7 +259,6 @@ export default function ChatScreen() {
         </View>
       )}
 
-      {/* Follow-up action pills */}
       {followUpPills.length > 0 && !loading && (
         <View style={styles.followUpContainer}>
           {followUpPills.map((pill, index) => (
@@ -282,7 +273,6 @@ export default function ChatScreen() {
         </View>
       )}
 
-      {/* Initial quick actions */}
       {messages.length === 1 && (
         <View style={styles.quickActions}>
           {quickActions.map((action, index) => (
@@ -390,7 +380,6 @@ const styles = StyleSheet.create({
   userText: {
     color: '#fff',
   },
-  // Structured response styles
   daySection: {
     marginVertical: 8,
     backgroundColor: '#1a1a2e',
@@ -438,7 +427,6 @@ const styles = StyleSheet.create({
     color: '#888',
     marginLeft: 8,
   },
-  // Follow-up pills
   followUpContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',

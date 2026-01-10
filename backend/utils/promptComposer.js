@@ -1,4 +1,3 @@
-// Personality definitions
 const personalities = {
   A: {
     name: 'Encouragement Seeker',
@@ -17,7 +16,6 @@ const personalities = {
   },
 };
 
-// Usage duration behavior
 const getUsageBehavior = (usageDays) => {
   if (usageDays <= 3) {
     return {
@@ -37,13 +35,11 @@ const getUsageBehavior = (usageDays) => {
   }
 };
 
-// Lifestyle context interpretation
 const getLifestyleContext = (lifestyleData) => {
   const { steps, exerciseMinutes, sleepHours } = lifestyleData;
   
   let context = 'Current lifestyle indicators:\n';
   
-  // Steps analysis
   if (steps < 3000) {
     context += `- Low activity level (${steps} steps) - may need gentle encouragement to move more\n`;
   } else if (steps < 7000) {
@@ -52,7 +48,6 @@ const getLifestyleContext = (lifestyleData) => {
     context += `- Active lifestyle (${steps} steps) - maintaining good movement habits\n`;
   }
   
-  // Exercise analysis
   if (exerciseMinutes < 20) {
     context += `- Minimal structured exercise (${exerciseMinutes} min) - focus on building consistency\n`;
   } else if (exerciseMinutes < 45) {
@@ -61,7 +56,6 @@ const getLifestyleContext = (lifestyleData) => {
     context += `- Strong exercise commitment (${exerciseMinutes} min) - well-established routine\n`;
   }
   
-  // Sleep analysis
   if (sleepHours < 6) {
     context += `- Poor sleep (${sleepHours} hours) - may affect energy and recovery, be mindful of this\n`;
   } else if (sleepHours < 7.5) {
@@ -73,7 +67,6 @@ const getLifestyleContext = (lifestyleData) => {
   return context;
 };
 
-// Main prompt composer
 const composePrompt = (userQuestion, personality, usageDays, lifestyleData) => {
   const personalityInfo = personalities[personality];
   const usageBehavior = getUsageBehavior(usageDays);
