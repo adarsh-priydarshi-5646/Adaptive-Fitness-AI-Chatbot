@@ -25,9 +25,9 @@ type Message = {
 
 const quickActions = [
   { label: 'Beginner workout', icon: 'fitness-outline' as const },
-  { label: 'Warm-up exercises', icon: 'flame-outline' as const },
+  { label: 'Warm-up routine', icon: 'flame-outline' as const },
   { label: 'Weekly plan', icon: 'calendar-outline' as const },
-  { label: 'Recovery tips', icon: 'bed-outline' as const },
+  { label: 'Recovery tips', icon: 'leaf-outline' as const },
 ];
 
 const parseAIResponse = (text: string) => {
@@ -39,12 +39,12 @@ const parseAIResponse = (text: string) => {
     const trimmed = line.trim();
     if (!trimmed) continue;
     
-    if (/^(Day\s*\d+|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)[:\s]/i.test(trimmed)) {
+    if (/^(\*\*)?Day\s*\d+/i.test(trimmed) || /^(\*\*)?(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)/i.test(trimmed)) {
       if (currentSection) sections.push(currentSection);
-      currentSection = { type: 'day', content: trimmed, items: [] };
+      currentSection = { type: 'day', content: trimmed.replace(/\*\*/g, ''), items: [] };
     }
     else if (/^[-•*]\s/.test(trimmed) || /^\d+[.)]\s/.test(trimmed)) {
-      const item = trimmed.replace(/^[-•*\d.)]+\s*/, '');
+      const item = trimmed.replace(/^[-•*\d.)]+\s*/, '').replace(/\*\*/g, '');
       if (currentSection?.items) {
         currentSection.items.push(item);
       } else {
@@ -52,16 +52,21 @@ const parseAIResponse = (text: string) => {
         currentSection = { type: 'list', content: '', items: [item] };
       }
     }
-    else if (/^(Want to know|Try asking|You might also|Suggested|Quick actions)[:\s]/i.test(trimmed)) {
+    else if (/^(\*\*)?(Want to know|Try asking|You might also|Suggested|Quick actions)/i.test(trimmed)) {
       if (currentSection) sections.push(currentSection);
-      currentSection = { type: 'followup', content: trimmed, items: [] };
+      currentSection = { type: 'followup', content: trimmed.replace(/\*\*/g, ''), items: [] };
+    }
+    else if (/^\*\*[^*]+\*\*/.test(trimmed)) {
+      if (currentSection) sections.push(currentSection);
+      currentSection = { type: 'heading', content: trimmed.replace(/\*\*/g, '') };
     }
     else {
+      const cleanText = trimmed.replace(/\*\*/g, '');
       if (currentSection?.type === 'list' || currentSection?.type === 'day') {
-        if (currentSection.items) currentSection.items.push(trimmed);
+        if (currentSection.items && cleanText.length > 0) currentSection.items.push(cleanText);
       } else {
         if (currentSection) sections.push(currentSection);
-        currentSection = { type: 'text', content: trimmed };
+        currentSection = { type: 'text', content: cleanText };
       }
     }
   }
@@ -80,15 +85,9 @@ const extractFollowUpPills = (text: string): string[] => {
   for (const pattern of patterns) {
     const matches = text.match(pattern);
     if (matches) {
-      const items = matches[1]?.split(/[|,]/).map(s => s.trim()).filter(Boolean);
+      const items = matches[1]?.split(/[|,]/).map(s => s.trim().replace(/\*\*/g, '')).filter(Boolean);
       if (items) pills.push(...items);
     }
-  }
-  
-  const pipeMatch = text.match(/([^|]+\|[^|]+(?:\|[^|]+)*)/);
-  if (pipeMatch) {
-    const items = pipeMatch[1].split('|').map(s => s.trim()).filter(Boolean);
-    pills.push(...items);
   }
   
   return Array.from(new Set(pills)).slice(0, 3);
@@ -185,32 +184,49 @@ export default function ChatScreen() {
     const sections = parseAIResponse(text);
     
     return (
-      <View>
+      <View style={styles.structuredContent}>
         {sections.map((section, idx) => {
+          if (section.type === 'heading') {
+            return (
+              <View key={idx} style={styles.headingSection}>
+                <Text style={styles.headingText}>{section.content}</Text>
+              </View>
+            );
+          }
           if (section.type === 'day') {
             return (
-              <View key={idx} style={styles.daySection}>
-                <Text style={styles.dayHeader}>{section.content}</Text>
-                {section.items?.map((item, i) => (
-                  <View key={i} style={styles.dayItemRow}>
-                    <Ionicons name="chevron-forward" size={14} color="#4ade80" />
-                    <Text style={styles.dayItem}>{item}</Text>
-                  </View>
-                ))}
+              <View key={idx} style={styles.dayCard}>
+                <View style={styles.dayHeader}>
+                  <Ionicons name="calendar" size={16} color="#4f46e5" />
+                  <Text style={styles.dayTitle}>{section.content}</Text>
+                </View>
+                <View style={styles.dayItems}>
+                  {section.items?.map((item, i) => (
+                    <View key={i} style={styles.dayItemRow}>
+                      <View style={styles.dayItemDot} />
+                      <Text style={styles.dayItemText}>{item}</Text>
+                    </View>
+                  ))}
+                </View>
               </View>
             );
           }
           if (section.type === 'list') {
             return (
-              <View key={idx} style={styles.listSection}>
+              <View key={idx} style={styles.listContainer}>
                 {section.items?.map((item, i) => (
-                  <View key={i} style={styles.bulletItem}>
-                    <View style={styles.bulletDot} />
-                    <Text style={styles.bulletText}>{item}</Text>
+                  <View key={i} style={styles.listItem}>
+                    <View style={styles.listBullet}>
+                      <Ionicons name="checkmark" size={12} color="#4ade80" />
+                    </View>
+                    <Text style={styles.listText}>{item}</Text>
                   </View>
                 ))}
               </View>
             );
+          }
+          if (section.type === 'followup') {
+            return null;
           }
           return (
             <Text key={idx} style={styles.messageText}>{section.content}</Text>
@@ -221,15 +237,15 @@ export default function ChatScreen() {
   };
 
   const renderMessage = ({ item }: { item: Message }) => (
-    <View style={[styles.messageBubble, item.isUser ? styles.userBubble : styles.aiBubble]}>
+    <View style={[styles.messageWrapper, item.isUser && styles.userMessageWrapper]}>
       {!item.isUser && (
         <View style={styles.aiAvatar}>
-          <MaterialCommunityIcons name="robot" size={16} color="#4f46e5" />
+          <MaterialCommunityIcons name="robot-happy" size={18} color="#4f46e5" />
         </View>
       )}
-      <View style={styles.messageContent}>
+      <View style={[styles.messageBubble, item.isUser ? styles.userBubble : styles.aiBubble]}>
         {item.isUser ? (
-          <Text style={[styles.messageText, styles.userText]}>{item.text}</Text>
+          <Text style={styles.userText}>{item.text}</Text>
         ) : (
           renderStructuredContent(item.text)
         )}
@@ -240,11 +256,11 @@ export default function ChatScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.headerButton}>
+        <TouchableOpacity onPress={() => router.push('/')} style={styles.headerButton}>
           <Ionicons name="arrow-back" size={22} color="#a5b4fc" />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <MaterialCommunityIcons name="dumbbell" size={20} color="#4f46e5" />
+          <MaterialCommunityIcons name="dumbbell" size={22} color="#4f46e5" />
           <Text style={styles.headerTitle}>Fitness Chat</Text>
         </View>
         <View style={styles.headerRight}>
@@ -270,39 +286,48 @@ export default function ChatScreen() {
 
       {loading && (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator color="#4f46e5" size="small" />
-          <Text style={styles.loadingText}>Thinking...</Text>
+          <View style={styles.loadingBubble}>
+            <ActivityIndicator color="#4f46e5" size="small" />
+            <Text style={styles.loadingText}>Thinking...</Text>
+          </View>
         </View>
       )}
 
       {followUpPills.length > 0 && !loading && (
         <View style={styles.followUpContainer}>
-          {followUpPills.map((pill, index) => (
-            <TouchableOpacity
-              key={index}
-              style={styles.followUpPill}
-              onPress={() => sendMessage(pill)}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.followUpText}>{pill}</Text>
-            </TouchableOpacity>
-          ))}
+          <Text style={styles.followUpLabel}>Quick follow-ups</Text>
+          <View style={styles.followUpRow}>
+            {followUpPills.map((pill, index) => (
+              <TouchableOpacity
+                key={index}
+                style={styles.followUpPill}
+                onPress={() => sendMessage(pill)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.followUpText}>{pill}</Text>
+                <Ionicons name="arrow-forward" size={14} color="#4ade80" />
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
       )}
 
       {messages.length === 1 && (
         <View style={styles.quickActions}>
-          {quickActions.map((action, index) => (
-            <TouchableOpacity
-              key={index}
-              style={styles.quickActionButton}
-              onPress={() => sendMessage(action.label)}
-              activeOpacity={0.7}
-            >
-              <Ionicons name={action.icon} size={18} color="#a5b4fc" />
-              <Text style={styles.quickActionText}>{action.label}</Text>
-            </TouchableOpacity>
-          ))}
+          <Text style={styles.quickActionsLabel}>Try asking about</Text>
+          <View style={styles.quickActionsGrid}>
+            {quickActions.map((action, index) => (
+              <TouchableOpacity
+                key={index}
+                style={styles.quickActionButton}
+                onPress={() => sendMessage(action.label)}
+                activeOpacity={0.7}
+              >
+                <Ionicons name={action.icon} size={20} color="#4f46e5" />
+                <Text style={styles.quickActionText}>{action.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
       )}
 
@@ -311,14 +336,16 @@ export default function ChatScreen() {
         keyboardVerticalOffset={10}
       >
         <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            value={inputText}
-            onChangeText={setInputText}
-            placeholder="Ask about fitness..."
-            placeholderTextColor="#6b7280"
-            multiline
-          />
+          <View style={styles.inputWrapper}>
+            <TextInput
+              style={styles.input}
+              value={inputText}
+              onChangeText={setInputText}
+              placeholder="Ask about fitness..."
+              placeholderTextColor="#6b7280"
+              multiline
+            />
+          </View>
           <TouchableOpacity
             style={[styles.sendButton, !inputText.trim() && styles.sendButtonDisabled]}
             onPress={() => sendMessage(inputText)}
@@ -336,7 +363,7 @@ export default function ChatScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: '#0f0f1a',
   },
   header: {
     flexDirection: 'row',
@@ -344,21 +371,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
+    backgroundColor: '#0f0f1a',
     borderBottomWidth: 1,
-    borderBottomColor: '#2d2d44',
+    borderBottomColor: '#1a1a2e',
   },
   headerButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#16213e',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#1a1a2e',
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerCenter: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
   headerTitle: {
     fontSize: 18,
@@ -368,15 +396,15 @@ const styles = StyleSheet.create({
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
   },
   coinBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#16213e',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
+    backgroundColor: '#1a1a2e',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 22,
     gap: 6,
   },
   coinText: {
@@ -388,113 +416,168 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 8,
   },
-  messageBubble: {
-    maxWidth: '85%',
-    marginBottom: 12,
+  messageWrapper: {
     flexDirection: 'row',
-    gap: 8,
+    marginBottom: 16,
+    gap: 10,
   },
-  userBubble: {
-    alignSelf: 'flex-end',
-  },
-  aiBubble: {
-    alignSelf: 'flex-start',
+  userMessageWrapper: {
+    justifyContent: 'flex-end',
   },
   aiAvatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#16213e',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#1a1a2e',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 4,
   },
-  messageContent: {
-    backgroundColor: '#2d2d44',
-    padding: 14,
-    borderRadius: 16,
-    borderTopLeftRadius: 4,
-    flex: 1,
+  messageBubble: {
+    maxWidth: '80%',
+    borderRadius: 20,
+  },
+  userBubble: {
+    backgroundColor: '#4f46e5',
+    padding: 16,
+    borderBottomRightRadius: 6,
+  },
+  aiBubble: {
+    backgroundColor: '#1a1a2e',
+    padding: 16,
+    borderBottomLeftRadius: 6,
+  },
+  structuredContent: {
+    gap: 12,
   },
   messageText: {
-    color: '#e0e0e0',
+    color: '#e5e7eb',
     fontSize: 15,
-    lineHeight: 22,
+    lineHeight: 24,
   },
   userText: {
     color: '#fff',
+    fontSize: 15,
+    lineHeight: 24,
   },
-  daySection: {
-    marginVertical: 8,
-    backgroundColor: '#1a1a2e',
-    borderRadius: 8,
-    padding: 12,
+  headingSection: {
+    marginBottom: 4,
+  },
+  headingText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    lineHeight: 24,
+  },
+  dayCard: {
+    backgroundColor: '#0f0f1a',
+    borderRadius: 12,
+    padding: 14,
+    borderLeftWidth: 3,
+    borderLeftColor: '#4f46e5',
   },
   dayHeader: {
-    color: '#4ade80',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
+  dayTitle: {
+    color: '#4f46e5',
     fontSize: 15,
     fontWeight: '600',
-    marginBottom: 8,
+  },
+  dayItems: {
+    gap: 8,
   },
   dayItemRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 6,
-    marginVertical: 2,
-  },
-  dayItem: {
-    color: '#d1d5db',
-    fontSize: 14,
-    lineHeight: 20,
-    flex: 1,
-  },
-  listSection: {
-    marginVertical: 4,
-  },
-  bulletItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginVertical: 4,
     gap: 10,
   },
-  bulletDot: {
+  dayItemDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
     backgroundColor: '#4ade80',
     marginTop: 8,
   },
-  bulletText: {
-    color: '#e0e0e0',
+  dayItemText: {
+    color: '#d1d5db',
+    fontSize: 14,
+    lineHeight: 22,
+    flex: 1,
+  },
+  listContainer: {
+    gap: 10,
+  },
+  listItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  listBullet: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#4ade8020',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  listText: {
+    color: '#e5e7eb',
     fontSize: 14,
     lineHeight: 22,
     flex: 1,
   },
   loadingContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  loadingBubble: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    backgroundColor: '#1a1a2e',
+    paddingHorizontal: 16,
     paddingVertical: 12,
+    borderRadius: 20,
+    alignSelf: 'flex-start',
     gap: 10,
+    marginLeft: 42,
   },
   loadingText: {
     color: '#9ca3af',
     fontSize: 14,
   },
   followUpContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#0f0f1a',
+  },
+  followUpLabel: {
+    color: '#6b7280',
+    fontSize: 12,
+    fontWeight: '500',
+    marginBottom: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  followUpRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
     gap: 8,
   },
   followUpPill: {
-    backgroundColor: '#16213e',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1a1a2e',
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#4ade80',
+    borderColor: '#4ade8040',
+    gap: 8,
   },
   followUpText: {
     color: '#4ade80',
@@ -502,20 +585,31 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   quickActions: {
+    padding: 16,
+    backgroundColor: '#0f0f1a',
+  },
+  quickActionsLabel: {
+    color: '#6b7280',
+    fontSize: 12,
+    fontWeight: '500',
+    marginBottom: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  quickActionsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    padding: 16,
     gap: 10,
   },
   quickActionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#16213e',
+    backgroundColor: '#1a1a2e',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: '#4f46e5',
+    borderColor: '#4f46e530',
     gap: 8,
   },
   quickActionText: {
@@ -526,15 +620,20 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     padding: 16,
+    backgroundColor: '#0f0f1a',
     borderTopWidth: 1,
-    borderTopColor: '#2d2d44',
+    borderTopColor: '#1a1a2e',
     alignItems: 'flex-end',
     gap: 12,
   },
-  input: {
+  inputWrapper: {
     flex: 1,
-    backgroundColor: '#16213e',
+    backgroundColor: '#1a1a2e',
     borderRadius: 24,
+    borderWidth: 1,
+    borderColor: '#2d2d44',
+  },
+  input: {
     paddingHorizontal: 20,
     paddingVertical: 14,
     color: '#fff',
@@ -543,13 +642,13 @@ const styles = StyleSheet.create({
   },
   sendButton: {
     backgroundColor: '#4f46e5',
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     alignItems: 'center',
     justifyContent: 'center',
   },
   sendButtonDisabled: {
-    backgroundColor: '#4f46e580',
+    backgroundColor: '#4f46e540',
   },
 });
