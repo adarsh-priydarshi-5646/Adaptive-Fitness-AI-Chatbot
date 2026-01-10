@@ -171,8 +171,12 @@ The chatbot will politely refuse and suggest consulting a healthcare professiona
 
 ---
 
-## Author
+<div align="center">
 
-Created by **Adarsh Priydarshi**
+### 👨‍💻 Created by **Adarsh Priydarshi**
 
-Happy Coding! 💪🏋️
+[![GitHub](https://img.shields.io/badge/GitHub-adarsh--priydarshi--5646-181717?style=flat&logo=github)](https://github.com/adarsh-priydarshi-5646)
+
+**Happy Coding!** 💪🏋️
+
+</div>
