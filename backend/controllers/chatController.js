@@ -2,9 +2,8 @@ const User = require('../models/User');
 const Conversation = require('../models/Conversation');
 const { checkForMedicalContent, getMedicalRefusalResponse } = require('../utils/safetyGuardrails');
 const { composePrompt } = require('../utils/promptComposer');
-const { getChatCompletion } = require('../services/openaiService');
+const { getChatCompletion, getChatCompletionStream } = require('../services/openaiService');
 
-// Calculate usage days
 const calculateUsageDays = (createdAt) => {
   const now = new Date();
   const created = new Date(createdAt);
@@ -21,17 +20,14 @@ const sendMessage = async (req, res) => {
       return res.status(400).json({ error: 'userId and message are required' });
     }
 
-    // Get user data
     const user = await User.findOne({ userId });
     if (!user) {
       return res.status(404).json({ error: 'User not found. Please complete onboarding first.' });
     }
 
-    // Check for medical content first
     if (checkForMedicalContent(message)) {
       const refusalResponse = getMedicalRefusalResponse();
       
-      // Save the conversation
       await Conversation.create({
         userId,
         userMessage: message,
@@ -41,7 +37,6 @@ const sendMessage = async (req, res) => {
         lifestyleContext: user.lifestyleData,
       });
 
-      // Award coin even for refused messages
       user.coins += 1;
       await user.save();
 
@@ -52,10 +47,8 @@ const sendMessage = async (req, res) => {
       });
     }
 
-    // Calculate usage days
     const usageDays = calculateUsageDays(user.createdAt);
 
-    // Compose adaptive prompt
     const { systemPrompt, userPrompt } = composePrompt(
       message,
       user.personality,
@@ -63,10 +56,8 @@ const sendMessage = async (req, res) => {
       user.lifestyleData
     );
 
-    // Get AI response
     const aiResponse = await getChatCompletion(systemPrompt, userPrompt);
 
-    // Save conversation
     await Conversation.create({
       userId,
       userMessage: message,
@@ -76,7 +67,6 @@ const sendMessage = async (req, res) => {
       lifestyleContext: user.lifestyleData,
     });
 
-    // Award coin
     user.coins += 1;
     await user.save();
 
@@ -88,6 +78,83 @@ const sendMessage = async (req, res) => {
   } catch (error) {
     console.error('Chat error:', error);
     res.status(500).json({ error: 'Failed to process message' });
+  }
+};
+
+const sendMessageStream = async (req, res) => {
+  try {
+    const { userId, message } = req.body;
+
+    if (!userId || !message) {
+      return res.status(400).json({ error: 'userId and message are required' });
+    }
+
+    const user = await User.findOne({ userId });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    if (checkForMedicalContent(message)) {
+      const refusalResponse = getMedicalRefusalResponse();
+      
+      await Conversation.create({
+        userId,
+        userMessage: message,
+        aiResponse: refusalResponse.response,
+        personality: user.personality,
+        usageDays: calculateUsageDays(user.createdAt),
+        lifestyleContext: user.lifestyleData,
+      });
+
+      user.coins += 1;
+      await user.save();
+
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      
+      res.write(`data: ${JSON.stringify({ type: 'content', text: refusalResponse.response })}\n\n`);
+      res.write(`data: ${JSON.stringify({ type: 'done', coins: user.coins })}\n\n`);
+      return res.end();
+    }
+
+    const usageDays = calculateUsageDays(user.createdAt);
+    const { systemPrompt, userPrompt } = composePrompt(
+      message,
+      user.personality,
+      usageDays,
+      user.lifestyleData
+    );
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    let fullResponse = '';
+
+    await getChatCompletionStream(systemPrompt, userPrompt, (chunk) => {
+      fullResponse += chunk;
+      res.write(`data: ${JSON.stringify({ type: 'content', text: chunk })}\n\n`);
+    });
+
+    await Conversation.create({
+      userId,
+      userMessage: message,
+      aiResponse: fullResponse,
+      personality: user.personality,
+      usageDays,
+      lifestyleContext: user.lifestyleData,
+    });
+
+    user.coins += 1;
+    await user.save();
+
+    res.write(`data: ${JSON.stringify({ type: 'done', coins: user.coins })}\n\n`);
+    res.end();
+  } catch (error) {
+    console.error('Stream error:', error);
+    res.write(`data: ${JSON.stringify({ type: 'error', message: 'Failed to process' })}\n\n`);
+    res.end();
   }
 };
 
@@ -107,7 +174,22 @@ const getChatHistory = async (req, res) => {
   }
 };
 
+const clearHistory = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    await Conversation.deleteMany({ userId });
+
+    res.json({ message: 'Chat history cleared successfully' });
+  } catch (error) {
+    console.error('Clear history error:', error);
+    res.status(500).json({ error: 'Failed to clear chat history' });
+  }
+};
+
 module.exports = {
   sendMessage,
+  sendMessageStream,
   getChatHistory,
+  clearHistory,
 };

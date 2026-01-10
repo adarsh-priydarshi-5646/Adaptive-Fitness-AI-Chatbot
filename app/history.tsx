@@ -4,18 +4,16 @@ import {
   View,
   Text,
   TouchableOpacity,
-  SafeAreaView,
   FlatList,
   ActivityIndicator,
-  Dimensions,
+  useWindowDimensions,
+  Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { API_URL } from '../config/api';
-
-const { width } = Dimensions.get('window');
-const isSmallDevice = width < 375;
 
 type ConversationItem = {
   _id: string;
@@ -28,8 +26,13 @@ type ConversationItem = {
 
 export default function HistoryScreen() {
   const router = useRouter();
+  const { width, height } = useWindowDimensions();
+  const isSmall = width < 375;
+  const isLandscape = width > height;
+  
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [clearing, setClearing] = useState(false);
 
   useEffect(() => {
     loadHistory();
@@ -52,6 +55,35 @@ export default function HistoryScreen() {
     setLoading(false);
   };
 
+  const clearHistory = async () => {
+    Alert.alert(
+      'Clear History',
+      'Are you sure you want to delete all chat history? This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear',
+          style: 'destructive',
+          onPress: async () => {
+            setClearing(true);
+            const storedUserId = await AsyncStorage.getItem('userId');
+            if (storedUserId) {
+              try {
+                await fetch(`${API_URL}/chat/history/${storedUserId}`, {
+                  method: 'DELETE',
+                });
+                setConversations([]);
+              } catch (error) {
+                console.error('Error clearing history:', error);
+              }
+            }
+            setClearing(false);
+          },
+        },
+      ]
+    );
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -71,36 +103,52 @@ export default function HistoryScreen() {
     return cleanText.substring(0, maxLength) + '...';
   };
 
+  const hp = isSmall ? 12 : 16;
+
   const renderConversation = ({ item }: { item: ConversationItem }) => (
-    <View style={styles.card}>
+    <View style={[styles.card, { padding: isSmall ? 14 : 16 }]}>
       <View style={styles.cardTop}>
-        <Text style={styles.timestamp}>{formatDate(item.timestamp)}</Text>
+        <Text style={[styles.timestamp, { fontSize: isSmall ? 12 : 13 }]}>{formatDate(item.timestamp)}</Text>
         <View style={styles.dayBadge}>
           <Text style={styles.dayText}>Day {item.usageDays}</Text>
         </View>
       </View>
       
       <View style={styles.messageBlock}>
-        <View style={styles.userRow}>
-          <Ionicons name="person-circle" size={20} color="#a5b4fc" />
-          <Text style={styles.userMsg}>{truncateText(item.userMessage, 80)}</Text>
+        <View style={styles.msgRow}>
+          <Ionicons name="person-circle" size={isSmall ? 18 : 20} color="#a5b4fc" />
+          <Text style={[styles.userMsg, { fontSize: isSmall ? 13 : 14 }]}>
+            {truncateText(item.userMessage, isLandscape ? 120 : 80)}
+          </Text>
         </View>
-        <View style={styles.aiRow}>
-          <MaterialCommunityIcons name="robot-happy" size={20} color="#4ade80" />
-          <Text style={styles.aiMsg}>{truncateText(item.aiResponse, 100)}</Text>
+        <View style={styles.msgRow}>
+          <MaterialCommunityIcons name="robot-happy" size={isSmall ? 18 : 20} color="#4ade80" />
+          <Text style={[styles.aiMsg, { fontSize: isSmall ? 13 : 14 }]}>
+            {truncateText(item.aiResponse, isLandscape ? 150 : 100)}
+          </Text>
         </View>
       </View>
     </View>
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <View style={[styles.header, { paddingHorizontal: hp }]}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
           <Ionicons name="arrow-back" size={20} color="#a5b4fc" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Chat History</Text>
-        <View style={{ width: 38 }} />
+        <Text style={[styles.headerTitle, { fontSize: isSmall ? 16 : 17 }]}>Chat History</Text>
+        {conversations.length > 0 ? (
+          <TouchableOpacity onPress={clearHistory} style={styles.clearBtn} disabled={clearing}>
+            {clearing ? (
+              <ActivityIndicator size="small" color="#ef4444" />
+            ) : (
+              <Ionicons name="trash-outline" size={20} color="#ef4444" />
+            )}
+          </TouchableOpacity>
+        ) : (
+          <View style={{ width: 38 }} />
+        )}
       </View>
 
       {loading ? (
@@ -110,11 +158,11 @@ export default function HistoryScreen() {
         </View>
       ) : conversations.length === 0 ? (
         <View style={styles.centerContainer}>
-          <View style={styles.emptyIcon}>
-            <Ionicons name="chatbubbles-outline" size={48} color="#4f46e5" />
+          <View style={[styles.emptyIcon, { width: isSmall ? 80 : 100, height: isSmall ? 80 : 100 }]}>
+            <Ionicons name="chatbubbles-outline" size={isSmall ? 40 : 48} color="#4f46e5" />
           </View>
-          <Text style={styles.emptyTitle}>No conversations yet</Text>
-          <Text style={styles.emptyDesc}>Start chatting to see your history here</Text>
+          <Text style={[styles.emptyTitle, { fontSize: isSmall ? 18 : 20 }]}>No conversations yet</Text>
+          <Text style={[styles.emptyDesc, { fontSize: isSmall ? 13 : 14 }]}>Start chatting to see your history here</Text>
           <TouchableOpacity 
             style={styles.startBtn} 
             onPress={() => router.push('/chat')}
@@ -125,14 +173,14 @@ export default function HistoryScreen() {
         </View>
       ) : (
         <>
-          <View style={styles.statsRow}>
+          <View style={[styles.statsRow, { marginHorizontal: hp }]}>
             <View style={styles.stat}>
-              <Text style={styles.statNum}>{conversations.length}</Text>
+              <Text style={[styles.statNum, { fontSize: isSmall ? 20 : 22 }]}>{conversations.length}</Text>
               <Text style={styles.statLabel}>Chats</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.stat}>
-              <Text style={styles.statNum}>{conversations[0]?.usageDays || 1}</Text>
+              <Text style={[styles.statNum, { fontSize: isSmall ? 20 : 22 }]}>{conversations[0]?.usageDays || 1}</Text>
               <Text style={styles.statLabel}>Days</Text>
             </View>
           </View>
@@ -140,7 +188,7 @@ export default function HistoryScreen() {
             data={conversations}
             renderItem={renderConversation}
             keyExtractor={(item) => item._id}
-            contentContainerStyle={styles.list}
+            contentContainerStyle={[styles.list, { padding: hp }]}
             showsVerticalScrollIndicator={false}
           />
         </>
@@ -158,12 +206,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: isSmallDevice ? 12 : 16,
     paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#1a1a2e',
   },
-  backBtn: {
+  headerBtn: {
     width: 38,
     height: 38,
     borderRadius: 19,
@@ -172,14 +219,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: isSmallDevice ? 16 : 17,
     fontWeight: '600',
     color: '#fff',
+  },
+  clearBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#1a1a2e',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   statsRow: {
     flexDirection: 'row',
     backgroundColor: '#1a1a2e',
-    marginHorizontal: isSmallDevice ? 12 : 16,
     marginTop: 16,
     borderRadius: 12,
     padding: 14,
@@ -189,7 +242,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statNum: {
-    fontSize: 22,
     fontWeight: '700',
     color: '#4f46e5',
   },
@@ -213,8 +265,6 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   emptyIcon: {
-    width: 100,
-    height: 100,
     borderRadius: 50,
     backgroundColor: '#1a1a2e',
     alignItems: 'center',
@@ -222,13 +272,11 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   emptyTitle: {
-    fontSize: 20,
     fontWeight: '600',
     color: '#fff',
     marginBottom: 8,
   },
   emptyDesc: {
-    fontSize: 14,
     color: '#6b7280',
     marginBottom: 24,
     textAlign: 'center',
@@ -245,12 +293,10 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   list: {
-    padding: isSmallDevice ? 12 : 16,
   },
   card: {
     backgroundColor: '#1a1a2e',
     borderRadius: 14,
-    padding: 16,
     marginBottom: 12,
   },
   cardTop: {
@@ -261,7 +307,6 @@ const styles = StyleSheet.create({
   },
   timestamp: {
     color: '#6b7280',
-    fontSize: 13,
   },
   dayBadge: {
     backgroundColor: '#4f46e5',
@@ -277,25 +322,18 @@ const styles = StyleSheet.create({
   messageBlock: {
     gap: 12,
   },
-  userRow: {
+  msgRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 10,
   },
   userMsg: {
     color: '#e5e7eb',
-    fontSize: 14,
     lineHeight: 20,
     flex: 1,
   },
-  aiRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-  },
   aiMsg: {
     color: '#9ca3af',
-    fontSize: 14,
     lineHeight: 20,
     flex: 1,
   },
