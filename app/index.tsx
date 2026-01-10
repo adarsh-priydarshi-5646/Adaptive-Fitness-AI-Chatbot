@@ -1,7 +1,10 @@
-import { StyleSheet, View, Text, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, SafeAreaView, ScrollView, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+
+const { width } = Dimensions.get('window');
+const isSmallDevice = width < 375;
 
 export default function WelcomeScreen() {
   const router = useRouter();
@@ -16,7 +19,7 @@ export default function WelcomeScreen() {
       >
         <View style={styles.header}>
           <View style={styles.iconContainer}>
-            <MaterialCommunityIcons name="dumbbell" size={56} color="#4f46e5" />
+            <MaterialCommunityIcons name="dumbbell" size={isSmallDevice ? 44 : 52} color="#4f46e5" />
           </View>
           <Text style={styles.title}>Fitness Companion</Text>
           <Text style={styles.subtitle}>Your AI-powered workout buddy</Text>
@@ -24,14 +27,14 @@ export default function WelcomeScreen() {
 
         <View style={styles.featuresCard}>
           <View style={styles.cardHeader}>
-            <Ionicons name="sparkles" size={20} color="#4f46e5" />
+            <Ionicons name="sparkles" size={18} color="#4f46e5" />
             <Text style={styles.cardTitle}>What I can help with</Text>
           </View>
           
           <View style={styles.featuresList}>
             <View style={styles.featureItem}>
               <View style={styles.featureIcon}>
-                <Ionicons name="barbell-outline" size={22} color="#4ade80" />
+                <Ionicons name="barbell-outline" size={20} color="#4ade80" />
               </View>
               <View style={styles.featureContent}>
                 <Text style={styles.featureTitle}>Workout Plans</Text>
@@ -41,7 +44,7 @@ export default function WelcomeScreen() {
 
             <View style={styles.featureItem}>
               <View style={styles.featureIcon}>
-                <Ionicons name="body-outline" size={22} color="#4ade80" />
+                <Ionicons name="body-outline" size={20} color="#4ade80" />
               </View>
               <View style={styles.featureContent}>
                 <Text style={styles.featureTitle}>Exercise Guide</Text>
@@ -51,7 +54,7 @@ export default function WelcomeScreen() {
 
             <View style={styles.featureItem}>
               <View style={styles.featureIcon}>
-                <Ionicons name="trending-up-outline" size={22} color="#4ade80" />
+                <Ionicons name="trending-up-outline" size={20} color="#4ade80" />
               </View>
               <View style={styles.featureContent}>
                 <Text style={styles.featureTitle}>Progress Tips</Text>
@@ -61,7 +64,7 @@ export default function WelcomeScreen() {
 
             <View style={styles.featureItem}>
               <View style={styles.featureIcon}>
-                <Ionicons name="heart-outline" size={22} color="#4ade80" />
+                <Ionicons name="heart-outline" size={20} color="#4ade80" />
               </View>
               <View style={styles.featureContent}>
                 <Text style={styles.featureTitle}>Wellness Advice</Text>
@@ -73,9 +76,7 @@ export default function WelcomeScreen() {
 
         <View style={styles.warningCard}>
           <View style={styles.warningHeader}>
-            <View style={styles.warningIconBox}>
-              <Ionicons name="shield-checkmark" size={20} color="#f59e0b" />
-            </View>
+            <Ionicons name="shield-checkmark" size={18} color="#f59e0b" />
             <Text style={styles.warningTitle}>Important Notice</Text>
           </View>
           <Text style={styles.warningText}>
@@ -104,66 +105,63 @@ const styles = StyleSheet.create({
     backgroundColor: '#0f0f1a',
   },
   scrollContent: {
-    padding: 24,
+    paddingHorizontal: isSmallDevice ? 16 : 20,
+    paddingTop: 16,
     paddingBottom: 100,
   },
   header: {
     alignItems: 'center',
-    marginTop: 20,
-    marginBottom: 40,
+    marginTop: isSmallDevice ? 12 : 20,
+    marginBottom: isSmallDevice ? 28 : 36,
   },
   iconContainer: {
-    width: 110,
-    height: 110,
-    borderRadius: 55,
+    width: isSmallDevice ? 88 : 100,
+    height: isSmallDevice ? 88 : 100,
+    borderRadius: 50,
     backgroundColor: '#1a1a2e',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 24,
-    borderWidth: 2,
-    borderColor: '#4f46e520',
+    marginBottom: 20,
   },
   title: {
-    fontSize: 32,
+    fontSize: isSmallDevice ? 26 : 30,
     fontWeight: '700',
     color: '#ffffff',
-    marginBottom: 8,
-    letterSpacing: -0.5,
+    marginBottom: 6,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: isSmallDevice ? 14 : 16,
     color: '#9ca3af',
-    letterSpacing: 0.2,
   },
   featuresCard: {
     backgroundColor: '#1a1a2e',
-    borderRadius: 20,
-    padding: 24,
-    marginBottom: 20,
+    borderRadius: 16,
+    padding: isSmallDevice ? 16 : 20,
+    marginBottom: 16,
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginBottom: 20,
+    gap: 8,
+    marginBottom: 16,
   },
   cardTitle: {
-    fontSize: 18,
+    fontSize: isSmallDevice ? 15 : 17,
     fontWeight: '600',
     color: '#ffffff',
   },
   featuresList: {
-    gap: 16,
+    gap: 14,
   },
   featureItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
+    gap: 12,
   },
   featureIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
+    width: 42,
+    height: 42,
+    borderRadius: 10,
     backgroundColor: '#4ade8015',
     alignItems: 'center',
     justifyContent: 'center',
@@ -172,43 +170,35 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   featureTitle: {
-    fontSize: 15,
+    fontSize: isSmallDevice ? 14 : 15,
     fontWeight: '600',
     color: '#ffffff',
     marginBottom: 2,
   },
   featureDesc: {
-    fontSize: 13,
+    fontSize: isSmallDevice ? 12 : 13,
     color: '#9ca3af',
   },
   warningCard: {
     backgroundColor: '#1a1a2e',
-    borderRadius: 20,
-    padding: 20,
-    borderLeftWidth: 4,
+    borderRadius: 16,
+    padding: isSmallDevice ? 16 : 18,
+    borderLeftWidth: 3,
     borderLeftColor: '#f59e0b',
   },
   warningHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginBottom: 12,
-  },
-  warningIconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: '#f59e0b15',
-    alignItems: 'center',
-    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 10,
   },
   warningTitle: {
-    fontSize: 16,
+    fontSize: isSmallDevice ? 14 : 15,
     fontWeight: '600',
     color: '#f59e0b',
   },
   warningText: {
-    fontSize: 14,
+    fontSize: isSmallDevice ? 13 : 14,
     color: '#9ca3af',
     lineHeight: 22,
   },
@@ -217,22 +207,23 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    padding: 24,
+    paddingHorizontal: isSmallDevice ? 16 : 20,
+    paddingVertical: 16,
+    paddingBottom: 24,
     backgroundColor: '#0f0f1a',
   },
   button: {
     backgroundColor: '#4f46e5',
-    paddingVertical: 18,
-    paddingHorizontal: 24,
-    borderRadius: 16,
+    paddingVertical: 16,
+    borderRadius: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
+    gap: 8,
   },
   buttonText: {
     color: '#ffffff',
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '600',
   },
 });

@@ -10,11 +10,15 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { API_URL } from '../config/api';
+
+const { width } = Dimensions.get('window');
+const isSmallDevice = width < 375;
 
 type Message = {
   id: string;
@@ -30,49 +34,51 @@ const quickActions = [
   { label: 'Recovery tips', icon: 'leaf-outline' as const },
 ];
 
+const formatAIText = (text: string) => {
+  let formatted = text
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/#{1,3}\s*/g, '')
+    .trim();
+  return formatted;
+};
+
 const parseAIResponse = (text: string) => {
-  const sections: { type: string; content: string; items?: string[] }[] = [];
-  const lines = text.split('\n');
-  let currentSection: { type: string; content: string; items?: string[] } | null = null;
+  const cleanText = formatAIText(text);
+  const lines = cleanText.split('\n');
+  const elements: { type: string; content: string; level?: number }[] = [];
   
   for (const line of lines) {
     const trimmed = line.trim();
-    if (!trimmed) continue;
+    if (!trimmed) {
+      elements.push({ type: 'space', content: '' });
+      continue;
+    }
     
-    if (/^(\*\*)?Day\s*\d+/i.test(trimmed) || /^(\*\*)?(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)/i.test(trimmed)) {
-      if (currentSection) sections.push(currentSection);
-      currentSection = { type: 'day', content: trimmed.replace(/\*\*/g, ''), items: [] };
+    if (/^(Day\s*\d+|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)[:\s-]/i.test(trimmed)) {
+      elements.push({ type: 'dayHeader', content: trimmed });
     }
-    else if (/^[-•*]\s/.test(trimmed) || /^\d+[.)]\s/.test(trimmed)) {
-      const item = trimmed.replace(/^[-•*\d.)]+\s*/, '').replace(/\*\*/g, '');
-      if (currentSection?.items) {
-        currentSection.items.push(item);
-      } else {
-        if (currentSection) sections.push(currentSection);
-        currentSection = { type: 'list', content: '', items: [item] };
-      }
+    else if (/^(Want to know|Try asking|You might also)/i.test(trimmed)) {
+      continue;
     }
-    else if (/^(\*\*)?(Want to know|Try asking|You might also|Suggested|Quick actions)/i.test(trimmed)) {
-      if (currentSection) sections.push(currentSection);
-      currentSection = { type: 'followup', content: trimmed.replace(/\*\*/g, ''), items: [] };
+    else if (/^\d+[.)]\s/.test(trimmed)) {
+      const content = trimmed.replace(/^\d+[.)]\s*/, '');
+      elements.push({ type: 'numbered', content, level: 1 });
     }
-    else if (/^\*\*[^*]+\*\*/.test(trimmed)) {
-      if (currentSection) sections.push(currentSection);
-      currentSection = { type: 'heading', content: trimmed.replace(/\*\*/g, '') };
+    else if (/^[-•]\s/.test(trimmed)) {
+      const content = trimmed.replace(/^[-•]\s*/, '');
+      elements.push({ type: 'bullet', content });
+    }
+    else if (/^\t[-•]\s/.test(trimmed) || /^\s{2,}[-•]\s/.test(trimmed)) {
+      const content = trimmed.replace(/^\s*[-•]\s*/, '');
+      elements.push({ type: 'subBullet', content });
     }
     else {
-      const cleanText = trimmed.replace(/\*\*/g, '');
-      if (currentSection?.type === 'list' || currentSection?.type === 'day') {
-        if (currentSection.items && cleanText.length > 0) currentSection.items.push(cleanText);
-      } else {
-        if (currentSection) sections.push(currentSection);
-        currentSection = { type: 'text', content: cleanText };
-      }
+      elements.push({ type: 'text', content: trimmed });
     }
   }
   
-  if (currentSection) sections.push(currentSection);
-  return sections.length > 0 ? sections : [{ type: 'text', content: text }];
+  return elements;
 };
 
 const extractFollowUpPills = (text: string): string[] => {
@@ -180,56 +186,45 @@ export default function ChatScreen() {
     }
   };
 
-  const renderStructuredContent = (text: string) => {
-    const sections = parseAIResponse(text);
+  const renderAIContent = (text: string) => {
+    const elements = parseAIResponse(text);
     
     return (
-      <View style={styles.structuredContent}>
-        {sections.map((section, idx) => {
-          if (section.type === 'heading') {
+      <View style={styles.aiContent}>
+        {elements.map((el, idx) => {
+          if (el.type === 'space') {
+            return <View key={idx} style={styles.spacer} />;
+          }
+          if (el.type === 'dayHeader') {
             return (
-              <View key={idx} style={styles.headingSection}>
-                <Text style={styles.headingText}>{section.content}</Text>
+              <Text key={idx} style={styles.dayHeader}>{el.content}</Text>
+            );
+          }
+          if (el.type === 'numbered') {
+            return (
+              <View key={idx} style={styles.numberedItem}>
+                <Text style={styles.numberedText}>{el.content}</Text>
               </View>
             );
           }
-          if (section.type === 'day') {
+          if (el.type === 'bullet') {
             return (
-              <View key={idx} style={styles.dayCard}>
-                <View style={styles.dayHeader}>
-                  <Ionicons name="calendar" size={16} color="#4f46e5" />
-                  <Text style={styles.dayTitle}>{section.content}</Text>
-                </View>
-                <View style={styles.dayItems}>
-                  {section.items?.map((item, i) => (
-                    <View key={i} style={styles.dayItemRow}>
-                      <View style={styles.dayItemDot} />
-                      <Text style={styles.dayItemText}>{item}</Text>
-                    </View>
-                  ))}
-                </View>
+              <View key={idx} style={styles.bulletItem}>
+                <Text style={styles.bulletDot}>•</Text>
+                <Text style={styles.bulletText}>{el.content}</Text>
               </View>
             );
           }
-          if (section.type === 'list') {
+          if (el.type === 'subBullet') {
             return (
-              <View key={idx} style={styles.listContainer}>
-                {section.items?.map((item, i) => (
-                  <View key={i} style={styles.listItem}>
-                    <View style={styles.listBullet}>
-                      <Ionicons name="checkmark" size={12} color="#4ade80" />
-                    </View>
-                    <Text style={styles.listText}>{item}</Text>
-                  </View>
-                ))}
+              <View key={idx} style={styles.subBulletItem}>
+                <Text style={styles.subBulletDot}>◦</Text>
+                <Text style={styles.subBulletText}>{el.content}</Text>
               </View>
             );
-          }
-          if (section.type === 'followup') {
-            return null;
           }
           return (
-            <Text key={idx} style={styles.messageText}>{section.content}</Text>
+            <Text key={idx} style={styles.aiText}>{el.content}</Text>
           );
         })}
       </View>
@@ -237,17 +232,17 @@ export default function ChatScreen() {
   };
 
   const renderMessage = ({ item }: { item: Message }) => (
-    <View style={[styles.messageWrapper, item.isUser && styles.userMessageWrapper]}>
+    <View style={[styles.messageRow, item.isUser && styles.userMessageRow]}>
       {!item.isUser && (
-        <View style={styles.aiAvatar}>
+        <View style={styles.avatar}>
           <MaterialCommunityIcons name="robot-happy" size={18} color="#4f46e5" />
         </View>
       )}
-      <View style={[styles.messageBubble, item.isUser ? styles.userBubble : styles.aiBubble]}>
+      <View style={[styles.messageContent, item.isUser && styles.userMessageContent]}>
         {item.isUser ? (
           <Text style={styles.userText}>{item.text}</Text>
         ) : (
-          renderStructuredContent(item.text)
+          renderAIContent(item.text)
         )}
       </View>
     </View>
@@ -256,19 +251,19 @@ export default function ChatScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.push('/')} style={styles.headerButton}>
-          <Ionicons name="arrow-back" size={22} color="#a5b4fc" />
+        <TouchableOpacity onPress={() => router.push('/')} style={styles.headerBtn}>
+          <Ionicons name="arrow-back" size={20} color="#a5b4fc" />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <MaterialCommunityIcons name="dumbbell" size={22} color="#4f46e5" />
+          <MaterialCommunityIcons name="dumbbell" size={20} color="#4f46e5" />
           <Text style={styles.headerTitle}>Fitness Chat</Text>
         </View>
         <View style={styles.headerRight}>
-          <TouchableOpacity onPress={() => router.push('/history')} style={styles.headerButton}>
-            <Ionicons name="time-outline" size={22} color="#a5b4fc" />
+          <TouchableOpacity onPress={() => router.push('/history')} style={styles.headerBtn}>
+            <Ionicons name="time-outline" size={20} color="#a5b4fc" />
           </TouchableOpacity>
           <View style={styles.coinBadge}>
-            <Ionicons name="star" size={14} color="#fbbf24" />
+            <Ionicons name="star" size={12} color="#fbbf24" />
             <Text style={styles.coinText}>{coins}</Text>
           </View>
         </View>
@@ -285,7 +280,10 @@ export default function ChatScreen() {
       />
 
       {loading && (
-        <View style={styles.loadingContainer}>
+        <View style={styles.loadingRow}>
+          <View style={styles.avatar}>
+            <MaterialCommunityIcons name="robot-happy" size={18} color="#4f46e5" />
+          </View>
           <View style={styles.loadingBubble}>
             <ActivityIndicator color="#4f46e5" size="small" />
             <Text style={styles.loadingText}>Thinking...</Text>
@@ -294,40 +292,33 @@ export default function ChatScreen() {
       )}
 
       {followUpPills.length > 0 && !loading && (
-        <View style={styles.followUpContainer}>
-          <Text style={styles.followUpLabel}>Quick follow-ups</Text>
-          <View style={styles.followUpRow}>
-            {followUpPills.map((pill, index) => (
-              <TouchableOpacity
-                key={index}
-                style={styles.followUpPill}
-                onPress={() => sendMessage(pill)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.followUpText}>{pill}</Text>
-                <Ionicons name="arrow-forward" size={14} color="#4ade80" />
-              </TouchableOpacity>
-            ))}
-          </View>
+        <View style={styles.pillsContainer}>
+          {followUpPills.map((pill, index) => (
+            <TouchableOpacity
+              key={index}
+              style={styles.pill}
+              onPress={() => sendMessage(pill)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.pillText}>{pill}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
       )}
 
       {messages.length === 1 && (
         <View style={styles.quickActions}>
-          <Text style={styles.quickActionsLabel}>Try asking about</Text>
-          <View style={styles.quickActionsGrid}>
-            {quickActions.map((action, index) => (
-              <TouchableOpacity
-                key={index}
-                style={styles.quickActionButton}
-                onPress={() => sendMessage(action.label)}
-                activeOpacity={0.7}
-              >
-                <Ionicons name={action.icon} size={20} color="#4f46e5" />
-                <Text style={styles.quickActionText}>{action.label}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          {quickActions.map((action, index) => (
+            <TouchableOpacity
+              key={index}
+              style={styles.quickBtn}
+              onPress={() => sendMessage(action.label)}
+              activeOpacity={0.7}
+            >
+              <Ionicons name={action.icon} size={16} color="#4f46e5" />
+              <Text style={styles.quickBtnText}>{action.label}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
       )}
 
@@ -335,24 +326,22 @@ export default function ChatScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={10}
       >
-        <View style={styles.inputContainer}>
-          <View style={styles.inputWrapper}>
-            <TextInput
-              style={styles.input}
-              value={inputText}
-              onChangeText={setInputText}
-              placeholder="Ask about fitness..."
-              placeholderTextColor="#6b7280"
-              multiline
-            />
-          </View>
+        <View style={styles.inputRow}>
+          <TextInput
+            style={styles.input}
+            value={inputText}
+            onChangeText={setInputText}
+            placeholder="Ask about fitness..."
+            placeholderTextColor="#6b7280"
+            multiline
+          />
           <TouchableOpacity
-            style={[styles.sendButton, !inputText.trim() && styles.sendButtonDisabled]}
+            style={[styles.sendBtn, !inputText.trim() && styles.sendBtnDisabled]}
             onPress={() => sendMessage(inputText)}
             disabled={!inputText.trim() || loading}
             activeOpacity={0.7}
           >
-            <Ionicons name="send" size={20} color="#fff" />
+            <Ionicons name="send" size={18} color="#fff" />
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -369,16 +358,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#0f0f1a',
+    paddingHorizontal: isSmallDevice ? 12 : 16,
+    paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#1a1a2e',
   },
-  headerButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  headerBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: '#1a1a2e',
     alignItems: 'center',
     justifyContent: 'center',
@@ -386,269 +374,214 @@ const styles = StyleSheet.create({
   headerCenter: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: isSmallDevice ? 16 : 17,
     fontWeight: '600',
     color: '#fff',
   },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
   },
   coinBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#1a1a2e',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 22,
-    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 16,
+    gap: 4,
   },
   coinText: {
     color: '#fbbf24',
     fontWeight: '600',
-    fontSize: 14,
+    fontSize: 13,
   },
   messageList: {
-    padding: 16,
-    paddingBottom: 8,
+    paddingHorizontal: isSmallDevice ? 12 : 16,
+    paddingVertical: 16,
   },
-  messageWrapper: {
+  messageRow: {
     flexDirection: 'row',
-    marginBottom: 16,
+    marginBottom: 20,
     gap: 10,
   },
-  userMessageWrapper: {
+  userMessageRow: {
     justifyContent: 'flex-end',
   },
-  aiAvatar: {
+  avatar: {
     width: 32,
     height: 32,
     borderRadius: 16,
     backgroundColor: '#1a1a2e',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 4,
   },
-  messageBubble: {
-    maxWidth: '80%',
-    borderRadius: 20,
+  messageContent: {
+    flex: 1,
+    maxWidth: '85%',
   },
-  userBubble: {
+  userMessageContent: {
     backgroundColor: '#4f46e5',
-    padding: 16,
-    borderBottomRightRadius: 6,
+    borderRadius: 18,
+    borderBottomRightRadius: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    maxWidth: '80%',
   },
-  aiBubble: {
-    backgroundColor: '#1a1a2e',
-    padding: 16,
-    borderBottomLeftRadius: 6,
+  aiContent: {
+    paddingTop: 4,
   },
-  structuredContent: {
-    gap: 12,
-  },
-  messageText: {
+  aiText: {
     color: '#e5e7eb',
-    fontSize: 15,
+    fontSize: isSmallDevice ? 14 : 15,
     lineHeight: 24,
   },
   userText: {
     color: '#fff',
-    fontSize: 15,
-    lineHeight: 24,
+    fontSize: isSmallDevice ? 14 : 15,
+    lineHeight: 22,
   },
-  headingSection: {
-    marginBottom: 4,
-  },
-  headingText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-    lineHeight: 24,
-  },
-  dayCard: {
-    backgroundColor: '#0f0f1a',
-    borderRadius: 12,
-    padding: 14,
-    borderLeftWidth: 3,
-    borderLeftColor: '#4f46e5',
+  spacer: {
+    height: 12,
   },
   dayHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 10,
-  },
-  dayTitle: {
     color: '#4f46e5',
-    fontSize: 15,
+    fontSize: isSmallDevice ? 15 : 16,
     fontWeight: '600',
-  },
-  dayItems: {
-    gap: 8,
-  },
-  dayItemRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-  },
-  dayItemDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#4ade80',
     marginTop: 8,
+    marginBottom: 8,
   },
-  dayItemText: {
-    color: '#d1d5db',
-    fontSize: 14,
-    lineHeight: 22,
-    flex: 1,
+  numberedItem: {
+    marginVertical: 4,
+    paddingLeft: 4,
   },
-  listContainer: {
-    gap: 10,
-  },
-  listItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-  },
-  listBullet: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#4ade8020',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 2,
-  },
-  listText: {
+  numberedText: {
     color: '#e5e7eb',
+    fontSize: isSmallDevice ? 14 : 15,
+    lineHeight: 24,
+  },
+  bulletItem: {
+    flexDirection: 'row',
+    marginVertical: 3,
+    paddingLeft: 4,
+  },
+  bulletDot: {
+    color: '#4ade80',
+    fontSize: 16,
+    marginRight: 10,
+    lineHeight: 24,
+  },
+  bulletText: {
+    color: '#e5e7eb',
+    fontSize: isSmallDevice ? 14 : 15,
+    lineHeight: 24,
+    flex: 1,
+  },
+  subBulletItem: {
+    flexDirection: 'row',
+    marginVertical: 2,
+    paddingLeft: 20,
+  },
+  subBulletDot: {
+    color: '#9ca3af',
     fontSize: 14,
+    marginRight: 8,
+    lineHeight: 22,
+  },
+  subBulletText: {
+    color: '#d1d5db',
+    fontSize: isSmallDevice ? 13 : 14,
     lineHeight: 22,
     flex: 1,
   },
-  loadingContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+  loadingRow: {
+    flexDirection: 'row',
+    paddingHorizontal: isSmallDevice ? 12 : 16,
+    paddingBottom: 12,
+    gap: 10,
   },
   loadingBubble: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1a1a2e',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 20,
-    alignSelf: 'flex-start',
-    gap: 10,
-    marginLeft: 42,
+    gap: 8,
   },
   loadingText: {
     color: '#9ca3af',
     fontSize: 14,
   },
-  followUpContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#0f0f1a',
-  },
-  followUpLabel: {
-    color: '#6b7280',
-    fontSize: 12,
-    fontWeight: '500',
-    marginBottom: 10,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  followUpRow: {
+  pillsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    paddingHorizontal: isSmallDevice ? 12 : 16,
+    paddingBottom: 12,
     gap: 8,
   },
-  followUpPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  pill: {
     backgroundColor: '#1a1a2e',
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     paddingVertical: 10,
-    borderRadius: 20,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: '#4ade8040',
-    gap: 8,
   },
-  followUpText: {
+  pillText: {
     color: '#4ade80',
     fontSize: 13,
     fontWeight: '500',
   },
   quickActions: {
-    padding: 16,
-    backgroundColor: '#0f0f1a',
-  },
-  quickActionsLabel: {
-    color: '#6b7280',
-    fontSize: 12,
-    fontWeight: '500',
-    marginBottom: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  quickActionsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    paddingHorizontal: isSmallDevice ? 12 : 16,
+    paddingBottom: 12,
+    gap: 8,
   },
-  quickActionButton: {
+  quickBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#1a1a2e',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: '#4f46e530',
-    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 18,
+    gap: 6,
   },
-  quickActionText: {
+  quickBtnText: {
     color: '#a5b4fc',
     fontSize: 13,
     fontWeight: '500',
   },
-  inputContainer: {
+  inputRow: {
     flexDirection: 'row',
-    padding: 16,
-    backgroundColor: '#0f0f1a',
+    paddingHorizontal: isSmallDevice ? 12 : 16,
+    paddingVertical: 12,
     borderTopWidth: 1,
     borderTopColor: '#1a1a2e',
     alignItems: 'flex-end',
-    gap: 12,
-  },
-  inputWrapper: {
-    flex: 1,
-    backgroundColor: '#1a1a2e',
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: '#2d2d44',
+    gap: 10,
   },
   input: {
-    paddingHorizontal: 20,
-    paddingVertical: 14,
+    flex: 1,
+    backgroundColor: '#1a1a2e',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     color: '#fff',
-    fontSize: 16,
+    fontSize: 15,
     maxHeight: 100,
   },
-  sendButton: {
+  sendBtn: {
     backgroundColor: '#4f46e5',
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  sendButtonDisabled: {
+  sendBtnDisabled: {
     backgroundColor: '#4f46e540',
   },
 });

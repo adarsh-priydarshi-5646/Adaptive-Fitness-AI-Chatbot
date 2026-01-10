@@ -7,11 +7,15 @@ import {
   SafeAreaView,
   FlatList,
   ActivityIndicator,
+  Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { API_URL } from '../config/api';
+
+const { width } = Dimensions.get('window');
+const isSmallDevice = width < 375;
 
 type ConversationItem = {
   _id: string;
@@ -56,56 +60,34 @@ export default function HistoryScreen() {
     if (diffDays === 0) {
       return `Today, ${date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`;
     } else if (diffDays === 1) {
-      return `Yesterday, ${date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`;
+      return `Yesterday`;
     }
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
   const truncateText = (text: string, maxLength: number) => {
-    const cleanText = text.replace(/\*\*/g, '').replace(/\n/g, ' ');
+    const cleanText = text.replace(/\*\*/g, '').replace(/\n/g, ' ').trim();
     if (cleanText.length <= maxLength) return cleanText;
     return cleanText.substring(0, maxLength) + '...';
   };
 
-  const renderConversation = ({ item, index }: { item: ConversationItem; index: number }) => (
-    <View style={styles.conversationCard}>
-      <View style={styles.cardHeader}>
-        <View style={styles.cardNumber}>
-          <Text style={styles.cardNumberText}>{conversations.length - index}</Text>
-        </View>
-        <View style={styles.cardMeta}>
-          <View style={styles.timestampRow}>
-            <Ionicons name="time-outline" size={14} color="#6b7280" />
-            <Text style={styles.timestamp}>{formatDate(item.timestamp)}</Text>
-          </View>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>Day {item.usageDays}</Text>
-          </View>
+  const renderConversation = ({ item }: { item: ConversationItem }) => (
+    <View style={styles.card}>
+      <View style={styles.cardTop}>
+        <Text style={styles.timestamp}>{formatDate(item.timestamp)}</Text>
+        <View style={styles.dayBadge}>
+          <Text style={styles.dayText}>Day {item.usageDays}</Text>
         </View>
       </View>
       
-      <View style={styles.messageSection}>
-        <View style={styles.messageBlock}>
-          <View style={styles.messageLabel}>
-            <Ionicons name="person" size={14} color="#a5b4fc" />
-            <Text style={styles.labelText}>You asked</Text>
-          </View>
-          <Text style={styles.userMessage}>{truncateText(item.userMessage, 100)}</Text>
+      <View style={styles.messageBlock}>
+        <View style={styles.userRow}>
+          <Ionicons name="person-circle" size={20} color="#a5b4fc" />
+          <Text style={styles.userMsg}>{truncateText(item.userMessage, 80)}</Text>
         </View>
-        
-        <View style={styles.divider} />
-        
-        <View style={styles.messageBlock}>
-          <View style={styles.messageLabel}>
-            <MaterialCommunityIcons name="robot-happy" size={14} color="#4ade80" />
-            <Text style={styles.labelTextAi}>AI responded</Text>
-          </View>
-          <Text style={styles.aiMessage}>{truncateText(item.aiResponse, 150)}</Text>
+        <View style={styles.aiRow}>
+          <MaterialCommunityIcons name="robot-happy" size={20} color="#4ade80" />
+          <Text style={styles.aiMsg}>{truncateText(item.aiResponse, 100)}</Text>
         </View>
       </View>
     </View>
@@ -114,55 +96,51 @@ export default function HistoryScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={22} color="#a5b4fc" />
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Ionicons name="arrow-back" size={20} color="#a5b4fc" />
         </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Ionicons name="time" size={22} color="#4f46e5" />
-          <Text style={styles.headerTitle}>Chat History</Text>
-        </View>
-        <View style={{ width: 44 }} />
+        <Text style={styles.headerTitle}>Chat History</Text>
+        <View style={{ width: 38 }} />
       </View>
 
       {loading ? (
-        <View style={styles.loadingContainer}>
+        <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color="#4f46e5" />
-          <Text style={styles.loadingText}>Loading history...</Text>
+          <Text style={styles.loadingText}>Loading...</Text>
         </View>
       ) : conversations.length === 0 ? (
-        <View style={styles.emptyContainer}>
+        <View style={styles.centerContainer}>
           <View style={styles.emptyIcon}>
-            <Ionicons name="chatbubbles-outline" size={56} color="#4f46e5" />
+            <Ionicons name="chatbubbles-outline" size={48} color="#4f46e5" />
           </View>
           <Text style={styles.emptyTitle}>No conversations yet</Text>
-          <Text style={styles.emptySubtitle}>Your chat history will appear here once you start chatting with your fitness companion</Text>
+          <Text style={styles.emptyDesc}>Start chatting to see your history here</Text>
           <TouchableOpacity 
-            style={styles.startButton} 
+            style={styles.startBtn} 
             onPress={() => router.push('/chat')}
             activeOpacity={0.8}
           >
-            <Ionicons name="chatbubble" size={18} color="#fff" />
-            <Text style={styles.startButtonText}>Start Chatting</Text>
+            <Text style={styles.startBtnText}>Start Chatting</Text>
           </TouchableOpacity>
         </View>
       ) : (
         <>
-          <View style={styles.statsBar}>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{conversations.length}</Text>
-              <Text style={styles.statLabel}>Conversations</Text>
+          <View style={styles.statsRow}>
+            <View style={styles.stat}>
+              <Text style={styles.statNum}>{conversations.length}</Text>
+              <Text style={styles.statLabel}>Chats</Text>
             </View>
             <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{conversations[0]?.usageDays || 1}</Text>
-              <Text style={styles.statLabel}>Days Active</Text>
+            <View style={styles.stat}>
+              <Text style={styles.statNum}>{conversations[0]?.usageDays || 1}</Text>
+              <Text style={styles.statLabel}>Days</Text>
             </View>
           </View>
           <FlatList
             data={conversations}
             renderItem={renderConversation}
             keyExtractor={(item) => item._id}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={styles.list}
             showsVerticalScrollIndicator={false}
           />
         </>
@@ -180,202 +158,145 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#0f0f1a',
+    paddingHorizontal: isSmallDevice ? 12 : 16,
+    paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#1a1a2e',
   },
-  backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  backBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: '#1a1a2e',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerCenter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
   headerTitle: {
-    fontSize: 18,
+    fontSize: isSmallDevice ? 16 : 17,
     fontWeight: '600',
     color: '#fff',
   },
-  statsBar: {
+  statsRow: {
     flexDirection: 'row',
     backgroundColor: '#1a1a2e',
-    marginHorizontal: 16,
+    marginHorizontal: isSmallDevice ? 12 : 16,
     marginTop: 16,
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 12,
+    padding: 14,
   },
-  statItem: {
+  stat: {
     flex: 1,
     alignItems: 'center',
   },
-  statNumber: {
-    fontSize: 24,
+  statNum: {
+    fontSize: 22,
     fontWeight: '700',
     color: '#4f46e5',
-    marginBottom: 4,
   },
   statLabel: {
     fontSize: 12,
     color: '#6b7280',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    marginTop: 2,
   },
   statDivider: {
     width: 1,
     backgroundColor: '#2d2d44',
-    marginHorizontal: 16,
   },
-  loadingContainer: {
+  centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 16,
+    padding: 24,
   },
   loadingText: {
     color: '#9ca3af',
-    fontSize: 14,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
+    marginTop: 12,
   },
   emptyIcon: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     backgroundColor: '#1a1a2e',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 28,
+    marginBottom: 20,
   },
   emptyTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '600',
     color: '#fff',
+    marginBottom: 8,
+  },
+  emptyDesc: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  startBtn: {
+    backgroundColor: '#4f46e5',
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  startBtnText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 15,
+  },
+  list: {
+    padding: isSmallDevice ? 12 : 16,
+  },
+  card: {
+    backgroundColor: '#1a1a2e',
+    borderRadius: 14,
+    padding: 16,
     marginBottom: 12,
   },
-  emptySubtitle: {
-    fontSize: 15,
-    color: '#6b7280',
-    marginBottom: 32,
-    textAlign: 'center',
-    lineHeight: 24,
-  },
-  startButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#4f46e5',
-    paddingHorizontal: 28,
-    paddingVertical: 16,
-    borderRadius: 16,
-    gap: 10,
-  },
-  startButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  listContent: {
-    padding: 16,
-  },
-  conversationCard: {
-    backgroundColor: '#1a1a2e',
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 16,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-    gap: 14,
-  },
-  cardNumber: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: '#4f46e520',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cardNumberText: {
-    color: '#4f46e5',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  cardMeta: {
-    flex: 1,
+  cardTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-  },
-  timestampRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+    marginBottom: 14,
   },
   timestamp: {
     color: '#6b7280',
     fontSize: 13,
   },
-  badge: {
+  dayBadge: {
     backgroundColor: '#4f46e5',
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
   },
-  badgeText: {
+  dayText: {
     color: '#fff',
     fontSize: 11,
     fontWeight: '600',
   },
-  messageSection: {
-    gap: 14,
-  },
   messageBlock: {
-    gap: 8,
+    gap: 12,
   },
-  messageLabel: {
+  userRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+    alignItems: 'flex-start',
+    gap: 10,
   },
-  labelText: {
-    color: '#a5b4fc',
-    fontSize: 12,
-    fontWeight: '500',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  labelTextAi: {
-    color: '#4ade80',
-    fontSize: 12,
-    fontWeight: '500',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#2d2d44',
-  },
-  userMessage: {
+  userMsg: {
     color: '#e5e7eb',
     fontSize: 14,
-    lineHeight: 22,
+    lineHeight: 20,
+    flex: 1,
   },
-  aiMessage: {
+  aiRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  aiMsg: {
     color: '#9ca3af',
     fontSize: 14,
-    lineHeight: 22,
+    lineHeight: 20,
+    flex: 1,
   },
 });
