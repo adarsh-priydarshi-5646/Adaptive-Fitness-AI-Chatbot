@@ -167,3 +167,12 @@ The chatbot will politely refuse and suggest consulting a healthcare professiona
 - [x] Coin reward system
 - [x] Chat history screen
 - [x] Responsive design for all devices
+
+
+---
+
+## Author
+
+Created by **Adarsh Priydarshi**
+
+Happy Coding! 💪🏋️
