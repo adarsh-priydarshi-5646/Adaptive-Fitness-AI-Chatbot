@@ -3,6 +3,8 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const connectDB = require('./config/database');
+const chatRoutes = require('./routes/chatRoutes');
+const userRoutes = require('./routes/userRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -14,6 +16,10 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // Connect to database
 connectDB();
+
+// Routes
+app.use('/api/chat', chatRoutes);
+app.use('/api/user', userRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
