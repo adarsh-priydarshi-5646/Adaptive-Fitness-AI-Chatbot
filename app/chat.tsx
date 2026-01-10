@@ -166,8 +166,6 @@ export default function ChatScreen() {
 
       setMessages(prev => [...prev, aiMessage]);
       if (data.coins) setCoins(data.coins);
-      
-      // Extract follow-up pills
       const pills = extractFollowUpPills(responseText);
       setFollowUpPills(pills);
     } catch (error) {
