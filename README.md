@@ -6,8 +6,6 @@ An AI-powered fitness companion chatbot built with React Native (Expo) and Node.
 
 [![Demo Video](https://img.shields.io/badge/Watch-Demo%20Video-red?style=for-the-badge&logo=youtube)](YOUR_VIDEO_LINK_HERE)
 
-> Replace `YOUR_VIDEO_LINK_HERE` with your actual demo video link (YouTube/Loom/Google Drive)
-
 ---
 
 ## Tech Stack
@@ -118,74 +116,6 @@ Try asking about medical topics to see the safety guardrails:
 - "My knee is injured, how should I workout?"
 
 The chatbot will politely refuse and suggest consulting a healthcare professional.
-
----
-
-## Prompt Composition Strategy
-
-Every AI request combines multiple context layers:
-
-### 1. User Personality
-| Personality | Traits | AI Tone |
-|-------------|--------|---------|
-| A - Encouragement Seeker | Easily demotivated, needs reassurance | Warm, encouraging, supportive |
-| B - Creative Explorer | Prefers creativity, dislikes spoon-feeding | Creative, engaging, offers variety |
-| C - Goal Finisher | Highly motivated, prefers structure | Direct, structured, action-oriented |
-
-### 2. Usage Duration Behavior
-| Days | AI Behavior |
-|------|-------------|
-| 0-3 days | Grounded, empathetic. No instant remedies unless asked. |
-| 4-8 days | Friendly listener. Short remedies after 2 messages. |
-| 9+ days | Coach-like. Actionable guidance after 1 message. |
-
-### 3. Lifestyle Context
-Dummy data used for personalization:
-```json
-{
-  "steps": 4200,
-  "exerciseMinutes": 25,
-  "sleepHours": 5.5
-}
-```
-
-The AI considers:
-- **Low activity** (< 3000 steps): Gentle encouragement
-- **Poor sleep** (< 6 hours): Mindful of energy levels
-- **Minimal exercise** (< 20 min): Focus on building consistency
-
-### Prompt Structure
-```
-System Prompt:
-├── Role definition (fitness companion)
-├── Safety rules (no medical advice)
-├── User personality + traits + tone
-├── Usage stage + behavior guideline
-├── Lifestyle context interpretation
-└── Response format guidelines
-
-User Prompt:
-└── User's fitness question
-```
-
----
-
-## Safety & Scope Handling
-
-### 1. Keyword Detection (Backend)
-Checks for medical terms before AI processing:
-- **Diseases**: diabetes, heart disease, cancer, etc.
-- **Injuries**: fracture, ligament, sprain, etc.
-- **Medications**: medicine, prescription, supplement, etc.
-
-### 2. System Prompt Guardrails
-AI is instructed to:
-- Never provide medical advice
-- Refuse questions about diseases, injuries, medications
-- Suggest consulting healthcare professionals
-
-### Refusal Response Example
-> "I appreciate your question, but I'm not able to provide medical advice regarding diseases, injuries, medications, or medical treatments. For health concerns like these, I strongly recommend consulting with a certified doctor or healthcare professional who can give you personalized guidance. I'm here to help with general fitness questions, workout routines, and wellness tips. Is there something fitness-related I can help you with instead?"
 
 ---
 
