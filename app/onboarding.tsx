@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, SafeAreaView, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const API_URL = 'http://localhost:3000/api';
+import { API_URL } from '../config/api';
 
 const personalities = [
   {

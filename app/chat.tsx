@@ -12,8 +12,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const API_URL = 'http://localhost:3000/api';
+import { API_URL } from '../config/api';
 
 type Message = {
   id: string;
@@ -23,11 +22,83 @@ type Message = {
 };
 
 const quickActions = [
-  'Beginner workout plan',
-  'Warm-up exercises',
-  'Stay consistent tips',
-  'Post-workout recovery',
+  '💪 Beginner workout',
+  '🔥 Warm-up exercises',
+  '📅 Weekly plan',
+  '😴 Recovery tips',
 ];
+
+// Parse AI response for structured content
+const parseAIResponse = (text: string) => {
+  const sections: { type: string; content: string; items?: string[] }[] = [];
+  const lines = text.split('\n');
+  let currentSection: { type: string; content: string; items?: string[] } | null = null;
+  
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    
+    // Check for day headers (Day 1:, Monday:, etc.)
+    if (/^(Day\s*\d+|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)[:\s]/i.test(trimmed)) {
+      if (currentSection) sections.push(currentSection);
+      currentSection = { type: 'day', content: trimmed, items: [] };
+    }
+    // Check for bullet points
+    else if (/^[-•*]\s/.test(trimmed) || /^\d+[.)]\s/.test(trimmed)) {
+      const item = trimmed.replace(/^[-•*\d.)]+\s*/, '');
+      if (currentSection?.items) {
+        currentSection.items.push(item);
+      } else {
+        if (currentSection) sections.push(currentSection);
+        currentSection = { type: 'list', content: '', items: [item] };
+      }
+    }
+    // Check for follow-up suggestions (Want to know about:, etc.)
+    else if (/^(Want to know|Try asking|You might also|Suggested|Quick actions)[:\s]/i.test(trimmed)) {
+      if (currentSection) sections.push(currentSection);
+      currentSection = { type: 'followup', content: trimmed, items: [] };
+    }
+    // Regular text
+    else {
+      if (currentSection?.type === 'list' || currentSection?.type === 'day') {
+        if (currentSection.items) currentSection.items.push(trimmed);
+      } else {
+        if (currentSection) sections.push(currentSection);
+        currentSection = { type: 'text', content: trimmed };
+      }
+    }
+  }
+  
+  if (currentSection) sections.push(currentSection);
+  return sections.length > 0 ? sections : [{ type: 'text', content: text }];
+};
+
+// Extract follow-up pills from response
+const extractFollowUpPills = (text: string): string[] => {
+  const pills: string[] = [];
+  const patterns = [
+    /Want to know about[:\s]*(.+)/i,
+    /Try asking[:\s]*(.+)/i,
+    /\|([^|]+)\|/g,
+  ];
+  
+  for (const pattern of patterns) {
+    const matches = text.match(pattern);
+    if (matches) {
+      const items = matches[1]?.split(/[|,]/).map(s => s.trim()).filter(Boolean);
+      if (items) pills.push(...items);
+    }
+  }
+  
+  // Also check for pipe-separated suggestions
+  const pipeMatch = text.match(/([^|]+\|[^|]+(?:\|[^|]+)*)/);
+  if (pipeMatch) {
+    const items = pipeMatch[1].split('|').map(s => s.trim()).filter(Boolean);
+    pills.push(...items);
+  }
+  
+  return Array.from(new Set(pills)).slice(0, 3);
+};
 
 export default function ChatScreen() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -35,6 +106,7 @@ export default function ChatScreen() {
   const [loading, setLoading] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [coins, setCoins] = useState(0);
+  const [followUpPills, setFollowUpPills] = useState<string[]>([]);
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
@@ -57,7 +129,6 @@ export default function ChatScreen() {
       }
     }
 
-    // Welcome message
     setMessages([{
       id: '1',
       text: "Hey! 👋 I'm your fitness companion. Ask me anything about workouts, exercises, or wellness tips!",
@@ -79,6 +150,7 @@ export default function ChatScreen() {
     setMessages(prev => [...prev, userMessage]);
     setInputText('');
     setLoading(true);
+    setFollowUpPills([]);
 
     try {
       const response = await fetch(`${API_URL}/chat/message`, {
@@ -88,16 +160,21 @@ export default function ChatScreen() {
       });
 
       const data = await response.json();
+      const responseText = data.response || data.error || 'Sorry, something went wrong.';
 
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: data.response || data.error || 'Sorry, something went wrong.',
+        text: responseText,
         isUser: false,
         timestamp: new Date(),
       };
 
       setMessages(prev => [...prev, aiMessage]);
       if (data.coins) setCoins(data.coins);
+      
+      // Extract follow-up pills
+      const pills = extractFollowUpPills(responseText);
+      setFollowUpPills(pills);
     } catch (error) {
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -111,9 +188,50 @@ export default function ChatScreen() {
     }
   };
 
+  // Render structured AI response
+  const renderStructuredContent = (text: string) => {
+    const sections = parseAIResponse(text);
+    
+    return (
+      <View>
+        {sections.map((section, idx) => {
+          if (section.type === 'day') {
+            return (
+              <View key={idx} style={styles.daySection}>
+                <Text style={styles.dayHeader}>{section.content}</Text>
+                {section.items?.map((item, i) => (
+                  <Text key={i} style={styles.dayItem}>• {item}</Text>
+                ))}
+              </View>
+            );
+          }
+          if (section.type === 'list') {
+            return (
+              <View key={idx} style={styles.listSection}>
+                {section.items?.map((item, i) => (
+                  <View key={i} style={styles.bulletItem}>
+                    <Text style={styles.bulletDot}>•</Text>
+                    <Text style={styles.bulletText}>{item}</Text>
+                  </View>
+                ))}
+              </View>
+            );
+          }
+          return (
+            <Text key={idx} style={styles.messageText}>{section.content}</Text>
+          );
+        })}
+      </View>
+    );
+  };
+
   const renderMessage = ({ item }: { item: Message }) => (
     <View style={[styles.messageBubble, item.isUser ? styles.userBubble : styles.aiBubble]}>
-      <Text style={[styles.messageText, item.isUser && styles.userText]}>{item.text}</Text>
+      {item.isUser ? (
+        <Text style={[styles.messageText, styles.userText]}>{item.text}</Text>
+      ) : (
+        renderStructuredContent(item.text)
+      )}
     </View>
   );
 
@@ -142,6 +260,22 @@ export default function ChatScreen() {
         </View>
       )}
 
+      {/* Follow-up action pills */}
+      {followUpPills.length > 0 && !loading && (
+        <View style={styles.followUpContainer}>
+          {followUpPills.map((pill, index) => (
+            <TouchableOpacity
+              key={index}
+              style={styles.followUpPill}
+              onPress={() => sendMessage(pill)}
+            >
+              <Text style={styles.followUpText}>{pill}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+
+      {/* Initial quick actions */}
       {messages.length === 1 && (
         <View style={styles.quickActions}>
           {quickActions.map((action, index) => (
@@ -215,7 +349,7 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   messageBubble: {
-    maxWidth: '80%',
+    maxWidth: '85%',
     padding: 14,
     borderRadius: 16,
     marginBottom: 10,
@@ -238,6 +372,44 @@ const styles = StyleSheet.create({
   userText: {
     color: '#fff',
   },
+  // Structured response styles
+  daySection: {
+    marginVertical: 8,
+    backgroundColor: '#1a1a2e',
+    borderRadius: 8,
+    padding: 10,
+  },
+  dayHeader: {
+    color: '#4ade80',
+    fontSize: 15,
+    fontWeight: '600',
+    marginBottom: 6,
+  },
+  dayItem: {
+    color: '#d1d5db',
+    fontSize: 14,
+    lineHeight: 20,
+    marginLeft: 8,
+  },
+  listSection: {
+    marginVertical: 4,
+  },
+  bulletItem: {
+    flexDirection: 'row',
+    marginVertical: 3,
+  },
+  bulletDot: {
+    color: '#4ade80',
+    fontSize: 14,
+    marginRight: 8,
+    width: 12,
+  },
+  bulletText: {
+    color: '#e0e0e0',
+    fontSize: 14,
+    lineHeight: 20,
+    flex: 1,
+  },
   loadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -247,6 +419,26 @@ const styles = StyleSheet.create({
   loadingText: {
     color: '#888',
     marginLeft: 8,
+  },
+  // Follow-up pills
+  followUpContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 8,
+  },
+  followUpPill: {
+    backgroundColor: '#16213e',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#4ade80',
+  },
+  followUpText: {
+    color: '#4ade80',
+    fontSize: 13,
   },
   quickActions: {
     flexDirection: 'row',
