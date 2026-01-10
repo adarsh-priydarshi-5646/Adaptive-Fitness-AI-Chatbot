@@ -1,24 +1,60 @@
-# Adaptive Fitness Companion Chatbot
+# 🏋️ Adaptive Fitness Companion Chatbot
 
 An AI-powered fitness companion chatbot built with React Native (Expo) and Node.js backend. The chatbot adapts its behavior based on user personality, usage duration, and lifestyle context.
 
-## Demo Video
+---
 
-[![Demo Video](https://img.shields.io/badge/Watch-Demo%20Video-red?style=for-the-badge&logo=youtube)](YOUR_VIDEO_LINK_HERE)
+## 🎬 Demo Video
+
+[![Demo Video](https://img.shields.io/badge/▶_Watch_Demo-Video-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](YOUR_VIDEO_LINK_HERE)
 
 ---
 
-## Tech Stack
+## 📱 Screenshots
 
-- **Frontend**: React Native (Expo Managed Workflow)
-- **Backend**: Node.js + Express
-- **Database**: MongoDB
-- **AI**: Groq API (LLaMA 3.1 8B model)
-- **Expo SDK**: 54
+<div align="center">
+<table>
+  <tr>
+    <td><img src="assets/screenshots/home.png" width="180" alt="Welcome"/></td>
+    <td><img src="assets/screenshots/style.png" width="180" alt="Style Selection"/></td>
+    <td><img src="assets/screenshots/style1.png" width="180" alt="Style Selected"/></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Welcome Screen</b></td>
+    <td align="center"><b>Personality Selection</b></td>
+    <td align="center"><b>Style Selected</b></td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <td><img src="assets/screenshots/chat.png" width="180" alt="Chat"/></td>
+    <td><img src="assets/screenshots/chat1.png" width="180" alt="AI Response"/></td>
+    <td><img src="assets/screenshots/history.png" width="180" alt="History"/></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Chat Screen</b></td>
+    <td align="center"><b>AI Response</b></td>
+    <td align="center"><b>Chat History</b></td>
+  </tr>
+</table>
+</div>
 
 ---
 
-## Features
+## 🛠️ Tech Stack
+
+| Category | Technology |
+|----------|------------|
+| Frontend | React Native (Expo Managed Workflow) |
+| Backend | Node.js + Express |
+| Database | MongoDB |
+| AI | Groq API (LLaMA 3.1 8B) |
+| Expo SDK | 54 |
+
+---
+
+## ✨ Features
 
 ### Core Features
 - ✅ Welcome screen with app introduction and disclaimer
@@ -38,7 +74,7 @@ An AI-powered fitness companion chatbot built with React Native (Expo) and Node.
 
 ---
 
-## How to Run
+## 🚀 How to Run
 
 ### Prerequisites
 - Node.js 20.x (LTS)
@@ -70,56 +106,38 @@ npm start
 ```
 
 ### Step 3: Frontend Setup
-Open a new terminal in the project root:
 ```bash
 npm install
 npx expo start
 ```
 
 ### Step 4: Run the App
-- Press `w` to open in web browser
-- Press `i` to open in iOS simulator
-- Press `a` to open in Android emulator
-- Scan QR code with Expo Go app on your phone
+- Press `w` → Web browser
+- Press `i` → iOS simulator
+- Press `a` → Android emulator
+- Scan QR code with Expo Go app
 
 ---
 
-## How to Use the App
+## 📖 How to Use
 
-### 1. Welcome Screen
-- Read what the chatbot can help with (workouts, exercises, wellness)
-- Note the disclaimer about medical advice limitations
-- Tap "Get Started" to begin
+| Step | Action |
+|------|--------|
+| 1 | Read the welcome screen and tap **Get Started** |
+| 2 | Choose your personality type (A, B, or C) |
+| 3 | Start chatting about fitness, workouts, wellness |
+| 4 | Use quick action pills for common queries |
+| 5 | View chat history by tapping the clock icon |
 
-### 2. Personality Selection
-Choose your fitness personality:
-- **Encouragement Seeker (A)**: For those who need motivation and reassurance
-- **Creative Explorer (B)**: For those who like variety and creative approaches
-- **Goal Finisher (C)**: For those who prefer structured plans and checklists
-
-### 3. Chat Screen
-- Type your fitness question in the input bar
-- Use quick action pills for common queries (Beginner workout, Warm-up routine, etc.)
-- Watch the AI respond with typing animation
-- Earn coins for each message sent
-- Tap the clock icon to view chat history
-
-### 4. Example Questions to Try
+### Example Questions
 - "Create a beginner workout plan for 3 days a week"
 - "What are good warm-up exercises before running?"
 - "How can I stay consistent with workouts?"
 - "Give me 5 tips for better posture"
 
-### 5. Safety Test
-Try asking about medical topics to see the safety guardrails:
-- "I have diabetes, what exercises should I do?"
-- "My knee is injured, how should I workout?"
-
-The chatbot will politely refuse and suggest consulting a healthcare professional.
-
 ---
 
-## Project Structure
+## 📁 Project Structure
 
 ```
 ├── app/
@@ -133,16 +151,15 @@ The chatbot will politely refuse and suggest consulting a healthcare professiona
 │   ├── models/          # MongoDB schemas
 │   ├── routes/          # API routes
 │   ├── services/        # AI service (Groq)
-│   ├── utils/           # Prompt composer, safety guardrails
+│   ├── utils/           # Prompt composer, safety
 │   └── server.js        # Express server
-├── components/          # Reusable UI components
 ├── config/              # API configuration
-└── constants/           # Theme colors
+└── assets/              # Images & screenshots
 ```
 
 ---
 
-## API Endpoints
+## 🔌 API Endpoints
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -150,12 +167,12 @@ The chatbot will politely refuse and suggest consulting a healthcare professiona
 | GET | `/api/user/:userId` | Get user profile |
 | PUT | `/api/user/:userId/lifestyle` | Update lifestyle data |
 | POST | `/api/chat/message` | Send message, get AI response |
-| GET | `/api/chat/history/:userId` | Get chat history (last 10) |
+| GET | `/api/chat/history/:userId` | Get chat history |
 | DELETE | `/api/chat/history/:userId` | Clear chat history |
 
 ---
 
-## Demo Checklist
+## ✅ Demo Checklist
 
 - [x] Welcome screen with disclaimer
 - [x] Personality selection during onboarding
@@ -168,14 +185,13 @@ The chatbot will politely refuse and suggest consulting a healthcare professiona
 - [x] Chat history screen
 - [x] Responsive design for all devices
 
-
 ---
 
 <div align="center">
 
 ### 👨‍💻 Created by **Adarsh Priydarshi**
 
-[![GitHub](https://img.shields.io/badge/GitHub-adarsh--priydarshi--5646-181717?style=flat&logo=github)](https://github.com/adarsh-priydarshi-5646)
+[![GitHub](https://img.shields.io/badge/GitHub-adarsh--priydarshi--5646-181717?style=for-the-badge&logo=github)](https://github.com/adarsh-priydarshi-5646)
 
 **Happy Coding!** 💪🏋️
 
