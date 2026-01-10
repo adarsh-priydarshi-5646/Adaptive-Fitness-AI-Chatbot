@@ -6,7 +6,7 @@ An AI-powered fitness companion chatbot built with React Native (Expo) and Node.
 
 ## 🎬 Demo Video
 
-[![Demo Video](https://img.shields.io/badge/▶_Watch_Demo-Video-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](YOUR_VIDEO_LINK_HERE)
+[![Demo Video](https://img.shields.io/badge/▶_Watch_Demo-Google_Drive-4285F4?style=for-the-badge&logo=googledrive&logoColor=white)](https://drive.google.com/file/d/1QCBc7oK4dRcGIMxxqRbDfssy1Ye8pQLZ/view?usp=sharing)
 
 ---
 
@@ -15,22 +15,19 @@ An AI-powered fitness companion chatbot built with React Native (Expo) and Node.
 <div align="center">
 <table>
   <tr>
-    <td><img src="assets/screenshots/home.png" width="180" alt="Welcome"/></td>
-    <td><img src="assets/screenshots/style.png" width="180" alt="Style Selection"/></td>
-    <td><img src="assets/screenshots/style1.png" width="180" alt="Style Selected"/></td>
+    <td><img src="assets/screenshots/home.png" width="200" alt="Welcome"/></td>
+    <td><img src="assets/screenshots/style.png" width="200" alt="Style Selection"/></td>
+    <td><img src="assets/screenshots/style1.png" width="200" alt="Style Selected"/></td>
   </tr>
   <tr>
     <td align="center"><b>Welcome Screen</b></td>
     <td align="center"><b>Personality Selection</b></td>
     <td align="center"><b>Style Selected</b></td>
   </tr>
-</table>
-
-<table>
   <tr>
-    <td><img src="assets/screenshots/chat.png" width="180" alt="Chat"/></td>
-    <td><img src="assets/screenshots/chat1.png" width="180" alt="AI Response"/></td>
-    <td><img src="assets/screenshots/history.png" width="180" alt="History"/></td>
+    <td><img src="assets/screenshots/chat.png" width="200" alt="Chat"/></td>
+    <td><img src="assets/screenshots/chat1.png" width="200" alt="AI Response"/></td>
+    <td><img src="assets/screenshots/history.png" width="200" alt="History"/></td>
   </tr>
   <tr>
     <td align="center"><b>Chat Screen</b></td>
