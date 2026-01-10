@@ -1,91 +1,79 @@
-import { StyleSheet, View, Text, TouchableOpacity, SafeAreaView, ScrollView, Dimensions } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, ScrollView, useWindowDimensions } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
-const { width } = Dimensions.get('window');
-const isSmallDevice = width < 375;
-
 export default function WelcomeScreen() {
   const router = useRouter();
+  const { width, height } = useWindowDimensions();
+  const isSmall = width < 375;
+  const isLandscape = width > height;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar style="light" />
       
       <ScrollView 
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent, 
+          { paddingHorizontal: isSmall ? 16 : 20 }
+        ]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
-          <View style={styles.iconContainer}>
-            <MaterialCommunityIcons name="dumbbell" size={isSmallDevice ? 44 : 52} color="#4f46e5" />
+        <View style={[styles.header, { marginTop: isLandscape ? 8 : (isSmall ? 12 : 20) }]}>
+          <View style={[styles.iconContainer, { 
+            width: isSmall ? 80 : 100, 
+            height: isSmall ? 80 : 100 
+          }]}>
+            <MaterialCommunityIcons name="dumbbell" size={isSmall ? 40 : 52} color="#4f46e5" />
           </View>
-          <Text style={styles.title}>Fitness Companion</Text>
-          <Text style={styles.subtitle}>Your AI-powered workout buddy</Text>
+          <Text style={[styles.title, { fontSize: isSmall ? 24 : 30 }]}>Fitness Companion</Text>
+          <Text style={[styles.subtitle, { fontSize: isSmall ? 14 : 16 }]}>Your AI-powered workout buddy</Text>
         </View>
 
-        <View style={styles.featuresCard}>
+        <View style={[styles.featuresCard, { padding: isSmall ? 16 : 20 }]}>
           <View style={styles.cardHeader}>
             <Ionicons name="sparkles" size={18} color="#4f46e5" />
-            <Text style={styles.cardTitle}>What I can help with</Text>
+            <Text style={[styles.cardTitle, { fontSize: isSmall ? 15 : 17 }]}>What I can help with</Text>
           </View>
           
           <View style={styles.featuresList}>
-            <View style={styles.featureItem}>
-              <View style={styles.featureIcon}>
-                <Ionicons name="barbell-outline" size={20} color="#4ade80" />
+            {[
+              { icon: 'barbell-outline', title: 'Workout Plans', desc: 'Personalized routines for your goals' },
+              { icon: 'body-outline', title: 'Exercise Guide', desc: 'Proper form and techniques' },
+              { icon: 'trending-up-outline', title: 'Progress Tips', desc: 'Stay motivated and consistent' },
+              { icon: 'heart-outline', title: 'Wellness Advice', desc: 'Recovery and lifestyle guidance' },
+            ].map((item, i) => (
+              <View key={i} style={styles.featureItem}>
+                <View style={styles.featureIcon}>
+                  <Ionicons name={item.icon as any} size={20} color="#4ade80" />
+                </View>
+                <View style={styles.featureContent}>
+                  <Text style={[styles.featureTitle, { fontSize: isSmall ? 14 : 15 }]}>{item.title}</Text>
+                  <Text style={[styles.featureDesc, { fontSize: isSmall ? 12 : 13 }]}>{item.desc}</Text>
+                </View>
               </View>
-              <View style={styles.featureContent}>
-                <Text style={styles.featureTitle}>Workout Plans</Text>
-                <Text style={styles.featureDesc}>Personalized routines for your goals</Text>
-              </View>
-            </View>
-
-            <View style={styles.featureItem}>
-              <View style={styles.featureIcon}>
-                <Ionicons name="body-outline" size={20} color="#4ade80" />
-              </View>
-              <View style={styles.featureContent}>
-                <Text style={styles.featureTitle}>Exercise Guide</Text>
-                <Text style={styles.featureDesc}>Proper form and techniques</Text>
-              </View>
-            </View>
-
-            <View style={styles.featureItem}>
-              <View style={styles.featureIcon}>
-                <Ionicons name="trending-up-outline" size={20} color="#4ade80" />
-              </View>
-              <View style={styles.featureContent}>
-                <Text style={styles.featureTitle}>Progress Tips</Text>
-                <Text style={styles.featureDesc}>Stay motivated and consistent</Text>
-              </View>
-            </View>
-
-            <View style={styles.featureItem}>
-              <View style={styles.featureIcon}>
-                <Ionicons name="heart-outline" size={20} color="#4ade80" />
-              </View>
-              <View style={styles.featureContent}>
-                <Text style={styles.featureTitle}>Wellness Advice</Text>
-                <Text style={styles.featureDesc}>Recovery and lifestyle guidance</Text>
-              </View>
-            </View>
+            ))}
           </View>
         </View>
 
-        <View style={styles.warningCard}>
+        <View style={[styles.warningCard, { padding: isSmall ? 16 : 18 }]}>
           <View style={styles.warningHeader}>
             <Ionicons name="shield-checkmark" size={18} color="#f59e0b" />
-            <Text style={styles.warningTitle}>Important Notice</Text>
+            <Text style={[styles.warningTitle, { fontSize: isSmall ? 14 : 15 }]}>Important Notice</Text>
           </View>
-          <Text style={styles.warningText}>
+          <Text style={[styles.warningText, { fontSize: isSmall ? 13 : 14 }]}>
             This app provides general fitness guidance only. It does NOT provide medical advice. For health conditions, injuries, or medications, please consult a healthcare professional.
           </Text>
         </View>
+
+        <View style={styles.versionContainer}>
+          <Text style={styles.versionText}>Version 1.0.0</Text>
+        </View>
       </ScrollView>
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingHorizontal: isSmall ? 16 : 20 }]}>
         <TouchableOpacity 
           style={styles.button}
           onPress={() => router.push('/onboarding')}
@@ -105,18 +93,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#0f0f1a',
   },
   scrollContent: {
-    paddingHorizontal: isSmallDevice ? 16 : 20,
     paddingTop: 16,
     paddingBottom: 100,
   },
   header: {
     alignItems: 'center',
-    marginTop: isSmallDevice ? 12 : 20,
-    marginBottom: isSmallDevice ? 28 : 36,
+    marginBottom: 28,
   },
   iconContainer: {
-    width: isSmallDevice ? 88 : 100,
-    height: isSmallDevice ? 88 : 100,
     borderRadius: 50,
     backgroundColor: '#1a1a2e',
     alignItems: 'center',
@@ -124,19 +108,16 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   title: {
-    fontSize: isSmallDevice ? 26 : 30,
     fontWeight: '700',
     color: '#ffffff',
     marginBottom: 6,
   },
   subtitle: {
-    fontSize: isSmallDevice ? 14 : 16,
     color: '#9ca3af',
   },
   featuresCard: {
     backgroundColor: '#1a1a2e',
     borderRadius: 16,
-    padding: isSmallDevice ? 16 : 20,
     marginBottom: 16,
   },
   cardHeader: {
@@ -146,7 +127,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   cardTitle: {
-    fontSize: isSmallDevice ? 15 : 17,
     fontWeight: '600',
     color: '#ffffff',
   },
@@ -170,19 +150,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   featureTitle: {
-    fontSize: isSmallDevice ? 14 : 15,
     fontWeight: '600',
     color: '#ffffff',
     marginBottom: 2,
   },
   featureDesc: {
-    fontSize: isSmallDevice ? 12 : 13,
     color: '#9ca3af',
   },
   warningCard: {
     backgroundColor: '#1a1a2e',
     borderRadius: 16,
-    padding: isSmallDevice ? 16 : 18,
     borderLeftWidth: 3,
     borderLeftColor: '#f59e0b',
   },
@@ -193,23 +170,29 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   warningTitle: {
-    fontSize: isSmallDevice ? 14 : 15,
     fontWeight: '600',
     color: '#f59e0b',
   },
   warningText: {
-    fontSize: isSmallDevice ? 13 : 14,
     color: '#9ca3af',
     lineHeight: 22,
+  },
+  versionContainer: {
+    alignItems: 'center',
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  versionText: {
+    color: '#6b7280',
+    fontSize: 13,
   },
   footer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    paddingHorizontal: isSmallDevice ? 16 : 20,
     paddingVertical: 16,
-    paddingBottom: 24,
+    paddingBottom: 28,
     backgroundColor: '#0f0f1a',
   },
   button: {
