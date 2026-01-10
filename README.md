@@ -13,11 +13,11 @@ An AI-powered fitness companion chatbot built with React Native (Expo) and Node.
 ## 📱 Screenshots
 
 <div align="center">
-<table>
+<table width="100%">
   <tr>
-    <td><img src="assets/screenshots/home.png" width="200" alt="Welcome"/></td>
-    <td><img src="assets/screenshots/style.png" width="200" alt="Style Selection"/></td>
-    <td><img src="assets/screenshots/style1.png" width="200" alt="Style Selected"/></td>
+    <td width="33%"><img src="assets/screenshots/home.png" width="100%" alt="Welcome"/></td>
+    <td width="33%"><img src="assets/screenshots/style.png" width="100%" alt="Style Selection"/></td>
+    <td width="33%"><img src="assets/screenshots/style1.png" width="100%" alt="Style Selected"/></td>
   </tr>
   <tr>
     <td align="center"><b>Welcome Screen</b></td>
@@ -25,9 +25,9 @@ An AI-powered fitness companion chatbot built with React Native (Expo) and Node.
     <td align="center"><b>Style Selected</b></td>
   </tr>
   <tr>
-    <td><img src="assets/screenshots/chat.png" width="200" alt="Chat"/></td>
-    <td><img src="assets/screenshots/chat1.png" width="200" alt="AI Response"/></td>
-    <td><img src="assets/screenshots/history.png" width="200" alt="History"/></td>
+    <td width="33%"><img src="assets/screenshots/chat.png" width="100%" alt="Chat"/></td>
+    <td width="33%"><img src="assets/screenshots/chat1.png" width="100%" alt="AI Response"/></td>
+    <td width="33%"><img src="assets/screenshots/history.png" width="100%" alt="History"/></td>
   </tr>
   <tr>
     <td align="center"><b>Chat Screen</b></td>
