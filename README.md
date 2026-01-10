@@ -163,13 +163,6 @@ AI is instructed to:
 
 ---
 
-## AI Tools Used
-
-- **Groq API**: Free tier with LLaMA 3.3 70B model
-- **Kiro AI**: Development assistance (see AI_README.md)
-
----
-
 ## Demo Checklist
 
 - [x] Welcome screen with disclaimer
